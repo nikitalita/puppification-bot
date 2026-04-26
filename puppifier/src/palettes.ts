@@ -85,14 +85,14 @@ export const PALETTES: Record<PaletteKey, Palette> = {
   lowNegative: {
     sounds: [
       { base: 'awoo', weight: 4 },
-      { base: 'ohhhh', weight: 3 },
+      { base: 'ohhhh', weight: 0.5 },
       { base: 'hrmmm', weight: 3 },
       { base: 'mrrr', weight: 3 },
       { base: 'whine', weight: 2 },
     ],
     interjections: [
       { base: 'awooo', weight: 3 },
-      { base: 'ohhhh', weight: 2 },
+      { base: 'ohhhh', weight: 0.5 },
     ],
   },
   curious: {
