@@ -179,7 +179,7 @@ export function morph(
 
   const pDouble = clamp(probs.doubleLeadBase + probs.doubleLeadIntensityScale * i, 0, 1);
   const pStretch = clamp(probs.stretchVowelBase + probs.stretchVowelIntensityScale * i, 0, 1);
-  const pRepeat = entry.weight >= 1 ? clamp(probs.repeatBase + probs.repeatIntensityScale * i, 0, 1) : 0;
+  const pRepeat = entry.weight >= 1 && !entry.noDuplicates ? clamp(probs.repeatBase + probs.repeatIntensityScale * i, 0, 1) : 0;
 
   // Decide the repeat count up front; each instance is then jittered
   // independently so duplicates aren't carbon copies of one another.
