@@ -130,7 +130,7 @@ export const GRAMMARS: Record<PaletteKey, ActionGrammar> = {
       { value: 'with great affection', weight: 1 },
     ],
     intransitiveVerbs: [
-      { value: 'flops over with a sigh', weight: 2 },
+      { value: 'flops', weight: 2 },
       { value: 'rests its chin on your knee', weight: 2 },
     ],
     modifierProbability: 0.3,
@@ -157,9 +157,9 @@ export const GRAMMARS: Record<PaletteKey, ActionGrammar> = {
       { value: 'with great prejudice', weight: 1 },
     ],
     intransitiveVerbs: [
-      { value: 'stomps off', weight: 2 },
+      { value: 'stomps', weight: 2 },
       { value: 'glares', weight: 3 },
-      { value: 'hackles raise', weight: 2 },
+      // { value: 'hackles raise', weight: 2 },
     ],
     modifierProbability: 0.25,
     intransitiveProbability: 0.3,
@@ -209,9 +209,9 @@ export const GRAMMARS: Record<PaletteKey, ActionGrammar> = {
       { value: 'with a long sigh', weight: 1 },
     ],
     intransitiveVerbs: [
-      { value: 'sighs deeply', weight: 3 },
-      { value: 'flops over', weight: 2 },
-      { value: 'lets out a long whine', weight: 2 },
+      { value: 'sighs', weight: 3 },
+      { value: 'flops', weight: 2 },
+      { value: 'whines', weight: 2 },
     ],
     modifierProbability: 0.35,
     intransitiveProbability: 0.45,

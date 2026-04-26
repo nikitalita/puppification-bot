@@ -31,7 +31,7 @@ export const PALETTES: Record<PaletteKey, Palette> = {
       { base: 'yip', weight: 3 },
       { base: 'yap', weight: 2 },
       { base: 'arf', weight: 3 },
-      { base: 'boof', weight: 1 },
+      { base: 'boof', weight: 0.2 },
     ],
     interjections: [
       { base: 'arrruuf', weight: 3 },
@@ -47,7 +47,7 @@ export const PALETTES: Record<PaletteKey, Palette> = {
       { base: 'snrrf', weight: 2 },
       { base: 'brrf', weight: 2 },
       { base: 'hmpf', weight: 2 },
-      { base: 'boof', weight: 2 },
+      { base: 'boof', weight: 0.2 },
     ],
     interjections: [
       { base: 'mrrrf', weight: 2 },
@@ -98,7 +98,7 @@ export const PALETTES: Record<PaletteKey, Palette> = {
   curious: {
     sounds: [
       { base: 'ruff', weight: 3 },
-      { base: 'boof', weight: 3 },
+      { base: 'boof', weight: 0.2 },
       { base: 'mrrf', weight: 3 },
       { base: 'hrm', weight: 3 },
       { base: 'ahrooo', weight: 2 },
@@ -110,11 +110,16 @@ export const PALETTES: Record<PaletteKey, Palette> = {
   },
   neutral: {
     sounds: [
-      { base: 'hrm', weight: 3 },
-      { base: 'mrrf', weight: 3 },
-      { base: 'boof', weight: 3 },
-      { base: 'snrf', weight: 2 },
-      { base: 'ruff', weight: 2 },
+      { base: 'bark', weight: 4 },
+      { base: 'woof', weight: 4 },
+      { base: 'ruff', weight: 3 },
+      { base: 'hrm', weight: 1 },
+      { base: 'mrrf', weight: 1 },
+      { base: 'boof', weight: 0.2 },
+      { base: 'snrf', weight: 1 },
     ],
+    interjections: [
+      { base: 'arrruuf', weight: 3 },
+    ]
   },
 };
