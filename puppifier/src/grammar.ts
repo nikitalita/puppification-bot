@@ -22,6 +22,14 @@ export interface ActionGrammar {
   modifierProbability: number;
   /** Probability of using an intransitive verb (no object). */
   intransitiveProbability: number;
+  /**
+   * Probability that an action slot using this palette actually emits a
+   * phrase. Lets quiet palettes (e.g. `neutral`) emit actions sparingly
+   * and expressive ones (e.g. `highPositive`) emit them often. When this
+   * gate fails, `composeAction` returns `null` and the translator skips
+   * the slot.
+   */
+  actionProbability: number;
 }
 
 /**
@@ -107,6 +115,7 @@ export const GRAMMARS: Record<PaletteKey, ActionGrammar> = {
     ],
     modifierProbability: 0.25,
     intransitiveProbability: 0.4,
+    actionProbability: 0.85,
   },
   lowPositive: {
     verbs: [
@@ -135,6 +144,7 @@ export const GRAMMARS: Record<PaletteKey, ActionGrammar> = {
     ],
     modifierProbability: 0.3,
     intransitiveProbability: 0.25,
+    actionProbability: 0.55,
   },
   highNegative: {
     verbs: [
@@ -163,6 +173,7 @@ export const GRAMMARS: Record<PaletteKey, ActionGrammar> = {
     ],
     modifierProbability: 0.25,
     intransitiveProbability: 0.3,
+    actionProbability: 0.7,
   },
   fear: {
     verbs: [
@@ -189,6 +200,7 @@ export const GRAMMARS: Record<PaletteKey, ActionGrammar> = {
     ],
     modifierProbability: 0.3,
     intransitiveProbability: 0.4,
+    actionProbability: 0.65,
   },
   lowNegative: {
     verbs: [
@@ -215,6 +227,7 @@ export const GRAMMARS: Record<PaletteKey, ActionGrammar> = {
     ],
     modifierProbability: 0.35,
     intransitiveProbability: 0.45,
+    actionProbability: 0.5,
   },
   curious: {
     verbs: [
@@ -242,6 +255,7 @@ export const GRAMMARS: Record<PaletteKey, ActionGrammar> = {
     ],
     modifierProbability: 0.3,
     intransitiveProbability: 0.25,
+    actionProbability: 0.65,
   },
   neutral: {
     verbs: transitiveCommon,
@@ -254,6 +268,7 @@ export const GRAMMARS: Record<PaletteKey, ActionGrammar> = {
     ],
     modifierProbability: 0.2,
     intransitiveProbability: 0.25,
+    actionProbability: 0.25,
   },
 };
 
@@ -276,6 +291,32 @@ function weightsWithDedup<T>(
 }
 
 /**
+ * Blend the per-palette `actionProbability` values across the mix
+ * weights. Returns the expected probability that an action slot using
+ * this mix should fire — i.e. `Σ_k mix.weights[k] * grammars[k].actionProbability`.
+ *
+ * The translator uses this as a gate before calling `composeAction`;
+ * `composeAction` itself never inspects this field, since gating outside
+ * lets the caller cleanly skip a slot rather than emit nothing.
+ */
+export function blendActionProbability(
+  mix: PaletteMix,
+  grammars: Record<PaletteKey, ActionGrammar>,
+): number {
+  let weightSum = 0;
+  let weightedProb = 0;
+  for (const key of PALETTE_KEYS) {
+    const w = mix.weights[key];
+    if (w <= 0) continue;
+    weightSum += w;
+    weightedProb += w * grammars[key].actionProbability;
+  }
+  if (weightSum <= 0) return grammars.neutral.actionProbability;
+  const p = weightedProb / weightSum;
+  return p < 0 ? 0 : p > 1 ? 1 : p;
+}
+
+/**
  * Generate a single action phrase, e.g. `*scratches ear*` or `*spins in a circle*`.
  *
  * Picks a `PaletteKey` from the mix, then either:
@@ -288,6 +329,10 @@ function weightsWithDedup<T>(
  * `shape` toggles whether objects and modifiers are emitted at all. With
  * `includeObjects: false`, intransitive verbs are preferred when available
  * and otherwise a transitive verb is emitted alone (no object).
+ *
+ * Always returns a `*...*` phrase. The decision to emit at all (per
+ * `actionProbability`) lives in the translator; see
+ * {@link blendActionProbability}.
  */
 export function composeAction(
   mix: PaletteMix,

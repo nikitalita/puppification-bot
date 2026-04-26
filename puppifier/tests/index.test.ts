@@ -408,8 +408,17 @@ describe('custom profile option', () => {
   it('Profile.actionShape disables objects and modifiers end-to-end', () => {
     // Force a single-action template at a high enough intensity to clear
     // any minIntensity gate, with intransitive-only forms easy to spot.
+    // Force every grammar's `actionProbability` to 1 so the shape test
+    // isn't perturbed by the per-mix emission gate.
+    const grammarsAlwaysFire = Object.fromEntries(
+      Object.entries(defaultProfile.grammars).map(([k, g]) => [
+        k,
+        { ...g, actionProbability: 1 },
+      ]),
+    ) as typeof defaultProfile.grammars;
     const intransitiveOnly: Profile = {
       ...defaultProfile,
+      grammars: grammarsAlwaysFire,
       density: {
         ...defaultProfile.density,
         actionsPerSentence: 5,

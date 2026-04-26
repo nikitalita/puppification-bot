@@ -147,6 +147,27 @@ const templated: Profile = {
 };
 ```
 
+#### `grammars[key].actionProbability`
+
+Each `ActionGrammar` carries an `actionProbability` in `[0, 1]` that
+governs how often a sentence in that tone actually fires an action.
+`neutral` is low (~0.25) so flat statements stay quiet, while
+`highPositive` is high (~0.85) so excited sentences usually get a
+`*tail wag*`. The translator blends these probabilities by the mix
+weights (so a 60% happy / 40% neutral sentence uses
+`0.6*0.85 + 0.4*0.25`) and rolls once per action slot before calling the
+composer. Tune individual palettes to taste:
+
+```ts
+const chatty: Profile = {
+  ...defaultProfile,
+  grammars: {
+    ...defaultProfile.grammars,
+    neutral: { ...defaultProfile.grammars.neutral, actionProbability: 0.6 },
+  },
+};
+```
+
 ## How it works
 
 1. **Classify** the input via `emotion-classifier`, getting top-K tones for the phrase and each sentence.

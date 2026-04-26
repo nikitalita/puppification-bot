@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import {
+  blendActionProbability,
   composeAction,
   DEFAULT_ACTION_SHAPE,
   GRAMMARS,
@@ -252,5 +253,62 @@ describe('composeAction', () => {
         expect(out).to.match(/vigorously\*$/);
       }
     });
+  });
+});
+
+describe('blendActionProbability', () => {
+  it('returns the picked palette probability for a single-key mix', () => {
+    expect(
+      blendActionProbability(highPositiveMix(), GRAMMARS),
+    ).to.equal(GRAMMARS.highPositive.actionProbability);
+    expect(
+      blendActionProbability(neutralMix(), GRAMMARS),
+    ).to.equal(GRAMMARS.neutral.actionProbability);
+  });
+
+  it('blends linearly across a two-palette mix', () => {
+    const mix: PaletteMix = {
+      weights: {
+        highPositive: 0.6,
+        lowPositive: 0,
+        highNegative: 0,
+        fear: 0,
+        lowNegative: 0,
+        curious: 0,
+        neutral: 0.4,
+      },
+      intensity: 0.5,
+    };
+    const expected =
+      0.6 * GRAMMARS.highPositive.actionProbability +
+      0.4 * GRAMMARS.neutral.actionProbability;
+    const got = blendActionProbability(mix, GRAMMARS);
+    expect(Math.abs(got - expected)).to.be.lessThan(1e-9);
+  });
+
+  it('falls back to neutral on an empty mix', () => {
+    const empty: PaletteMix = {
+      weights: {
+        highPositive: 0,
+        lowPositive: 0,
+        highNegative: 0,
+        fear: 0,
+        lowNegative: 0,
+        curious: 0,
+        neutral: 0,
+      },
+      intensity: 0,
+    };
+    expect(blendActionProbability(empty, GRAMMARS)).to.equal(
+      GRAMMARS.neutral.actionProbability,
+    );
+  });
+
+  it('default grammars assign neutral a low probability and highPositive a higher one', () => {
+    expect(GRAMMARS.neutral.actionProbability).to.be.lessThan(
+      GRAMMARS.highPositive.actionProbability,
+    );
+    expect(GRAMMARS.neutral.actionProbability).to.be.lessThan(0.4);
+    expect(GRAMMARS.highPositive.actionProbability).to.be.greaterThan(0.7);
   });
 });

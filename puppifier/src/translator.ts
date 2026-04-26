@@ -1,6 +1,6 @@
 import type { ToneScore } from 'emotion-classifier';
 import { findOverride, findTags } from './easterEggs.js';
-import { composeAction } from './grammar.js';
+import { blendActionProbability, composeAction } from './grammar.js';
 import { morph } from './morphology.js';
 import type { Palette, SoundEntry } from './palettes.js';
 import type { Profile } from './profile.js';
@@ -226,6 +226,16 @@ export function translateSentence(
     Math.max(0, density.maxActionsPerSentence),
   );
 
+  // Per-mix probability gate: the weighted blend of each palette's
+  // `actionProbability`. A "happy" sentence (high-positive heavy) clears
+  // the gate often; a "neutral" sentence rarely does. Sampled fresh per
+  // candidate slot so multi-action templates don't all-or-nothing.
+  const actionGateProbability = blendActionProbability(
+    mix,
+    ctx.profile.grammars,
+  );
+  const tryEmitAction = () => ctx.rng.bool(actionGateProbability);
+
   const clusterSizes = clusterSizesForSlots(template, totalSounds);
   let soundIdx = 0;
   let actionsEmitted = 0;
@@ -240,7 +250,11 @@ export function translateSentence(
         break;
       }
       case 'opener': {
-        if (actionSlotsInTemplate > 0 && actionsEmitted < targetActions) {
+        if (
+          actionSlotsInTemplate > 0 &&
+          actionsEmitted < targetActions &&
+          tryEmitAction()
+        ) {
           const action = composeAction(
             mix,
             ctx.rng,
@@ -251,7 +265,8 @@ export function translateSentence(
           parts.push(action);
           actionsEmitted++;
         } else {
-          // Use an interjection sound as an opener fallback.
+          // No action slot, exhausted, or gated out: open with an
+          // interjection sound so the sentence still has shape.
           const { cluster } = generateSoundCluster(1, mix, ctx, 'interjections');
           parts.push(cluster);
         }
@@ -259,7 +274,7 @@ export function translateSentence(
       }
       case 'action':
       case 'closer': {
-        if (actionsEmitted < targetActions) {
+        if (actionsEmitted < targetActions && tryEmitAction()) {
           const action = composeAction(
             mix,
             ctx.rng,
@@ -303,7 +318,10 @@ export function translateSentence(
     appendPunctuationToLastSound(parts, '?');
     if (!parts.some((p) => p.startsWith('*') && /tilt|cock|head/.test(p))) {
       // Add a head-tilt action only if we haven't already and there's room.
-      if (actionsEmitted < density.maxActionsPerSentence) {
+      if (
+        actionsEmitted < density.maxActionsPerSentence &&
+        ctx.rng.bool(ctx.profile.grammars.curious.actionProbability)
+      ) {
         const tilt = composeAction(
           { weights: { ...mix.weights, curious: 1, neutral: 0, highPositive: 0, lowPositive: 0, highNegative: 0, fear: 0, lowNegative: 0 }, intensity: mix.intensity },
           ctx.rng,

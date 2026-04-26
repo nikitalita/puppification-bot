@@ -259,4 +259,31 @@ describe('translateSentence', () => {
     }
     expect(withAction / N).to.be.greaterThan(0.4);
   });
+
+  it('happy sentences emit actions far more often than neutral sentences', () => {
+    // Drives the per-mix probability gate: highPositive grammar has a
+    // high `actionProbability` while neutral has a low one.
+    const N = 100;
+    const neutralTone: ToneScore[] = [
+      { label: 'neutral', score: 1 },
+    ];
+    let happyHits = 0;
+    let neutralHits = 0;
+    for (let i = 0; i < N; i++) {
+      const happyOut = translateSentence(
+        'I am happy about this!',
+        happyTone,
+        ctxAt(1000 + i),
+      );
+      const neutralOut = translateSentence(
+        'I am happy about this!',
+        neutralTone,
+        ctxAt(2000 + i),
+      );
+      if (/\*[^*]+\*/.test(happyOut)) happyHits++;
+      if (/\*[^*]+\*/.test(neutralOut)) neutralHits++;
+    }
+    // The gap should be substantial — happy ~0.85, neutral ~0.25.
+    expect(happyHits).to.be.greaterThan(neutralHits + N * 0.3);
+  });
 });
