@@ -18,7 +18,6 @@ export interface TranslateBuffers {
 }
 
 export interface TranslateContext {
-  seed: number;
   rng: Random;
   profile: Profile;
   buffers: TranslateBuffers;

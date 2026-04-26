@@ -6,10 +6,9 @@ import {
 } from 'emotion-classifier';
 import { defaultProfile, type Profile } from './profile.js';
 import { createRandom, type Random } from './random.js';
-import { makeRecentBuffers, TranslateContext, translateSentence } from './translator.js';
+import { makeRecentBuffers, translateSentence } from './translator.js';
 
 export type { Classifier, PhraseEmotionClassification, ToneScore };
-export type { TranslateContext } from './translator.js';
 export type { Profile } from './profile.js';
 
 export interface PuppifiedSentence {
@@ -40,25 +39,6 @@ export interface PuppifyOptions {
    * `puppify_classification` / `Puppifier#translateClassification`.
    */
   topK?: number;
-
-  /**
-   * Inject a pre-existing TranslateContext. Defaults to a fresh context with the default profile.
-   */
-  context?: TranslateContext;
-}
-
-
-
-export function create_translation_context(profile?: Profile, seed_?: number | string): TranslateContext {
-  profile = profile ?? defaultProfile;
-  const { random, seed } = createRandom(seed_);
-  console.log('create_translation_context input: ', seed_, ' output: ', seed);
-  return {
-    seed,
-    rng: random,
-    profile: profile,
-    buffers: makeRecentBuffers(defaultProfile),
-  };
 }
 
 /**
@@ -67,9 +47,12 @@ export function create_translation_context(profile?: Profile, seed_?: number | s
  */
 function renderClassification(
   classification: PhraseEmotionClassification,
-  context?: TranslateContext,
+  random: Random,
+  seed: number,
+  profile: Profile,
 ): PuppifyResult {
-  const ctx = context ?? create_translation_context();
+  const buffers = makeRecentBuffers(profile);
+  const ctx = { rng: random, profile, buffers };
   const sentences: PuppifiedSentence[] = classification.sentences.map((s) => ({
     source: s.text,
     tone: s.tone,
@@ -80,7 +63,7 @@ function renderClassification(
     source: classification.phrase.text,
     phraseTone: classification.phrase.tone,
     sentences,
-    seed: ctx.seed,
+    seed,
   };
 }
 
@@ -98,7 +81,8 @@ export function puppify_classification(
   classification: PhraseEmotionClassification,
   options: PuppifyOptions = {},
 ): PuppifyResult {
-  return renderClassification(classification, options.context);
+  const { random, seed } = createRandom(options.seed);
+  return renderClassification(classification, random, seed, defaultProfile);
 }
 
 /** camelCase alias of {@link puppify_classification}. */
@@ -125,30 +109,32 @@ export async function puppify(
  */
 export const puppify_text = puppify;
 
-
 /**
  * Stateful variant. Holds a single RNG stream and (optionally) an
  * injected classifier so successive `translate()` / `translateClassification()`
  * calls share the same deterministic stream after `setSeed(...)`.
  */
 export class Puppifier {
+  private random: Random;
+  private currentSeed: number;
   private readonly classifier: Classifier | undefined;
   private readonly topK: number | undefined;
   private readonly profile: Profile;
-  private readonly context: TranslateContext;
 
   constructor(options: PuppifyOptions = {}) {
+    const { random, seed } = createRandom(options.seed);
+    this.random = random;
+    this.currentSeed = seed;
     this.classifier = options.classifier;
     this.topK = options.topK;
     this.profile = defaultProfile;
-    this.context = options.context ?? create_translation_context(defaultProfile, options.seed);
   }
 
   /** Reset the RNG stream from a fresh seed. */
   setSeed(seed: number | string): void {
     const { random, seed: numericSeed } = createRandom(seed);
-    this.context.rng = random;
-    this.context.seed = numericSeed;
+    this.random = random;
+    this.currentSeed = numericSeed;
   }
 
   /** Runs the classifier on `text`, then renders. */
@@ -159,7 +145,9 @@ export class Puppifier {
     });
     return renderClassification(
       classification,
-      this.context,
+      this.random,
+      this.currentSeed,
+      this.profile,
     );
   }
 
@@ -172,7 +160,9 @@ export class Puppifier {
   ): PuppifyResult {
     return renderClassification(
       classification,
-      this.context,
+      this.random,
+      this.currentSeed,
+      this.profile,
     );
   }
 }
