@@ -1,0 +1,35 @@
+{
+  "name": "puppification-discord-bot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Discord bot that puppifies messages from designated users using the puppifier and emotion-classifier libraries.",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "start": "node dist/src/index.js",
+    "dev": "tsx watch src/index.ts",
+    "register": "tsx scripts/register-commands.ts",
+    "test": "mocha"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.26.3",
+    "dotenv": "^17.4.2",
+    "emotion-classifier": "file:../emotion-classifier",
+    "puppifier": "file:../puppifier"
+  },
+  "devDependencies": {
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^25.6.0",
+    "chai": "^6.2.2",
+    "mocha": "^11.7.5",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
+  }
+}
