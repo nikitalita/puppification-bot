@@ -173,7 +173,7 @@ export const GRAMMARS: Record<PaletteKey, ActionGrammar> = {
     ],
     modifierProbability: 0.25,
     intransitiveProbability: 0.3,
-    actionProbability: 0.7,
+    actionProbability: 0.95,
   },
   fear: {
     verbs: [
@@ -194,13 +194,13 @@ export const GRAMMARS: Record<PaletteKey, ActionGrammar> = {
       { value: 'with wide eyes', weight: 2 },
     ],
     intransitiveVerbs: [
-      { value: 'whimpers softly', weight: 3 },
+      { value: 'whimpers', weight: 3 },
       { value: 'tremors', weight: 2 },
       { value: 'pins ears flat', weight: 2 },
     ],
     modifierProbability: 0.3,
     intransitiveProbability: 0.4,
-    actionProbability: 0.65,
+    actionProbability: 0.9,
   },
   lowNegative: {
     verbs: [
@@ -367,6 +367,9 @@ export function composeAction(
     // No intransitive pool to fall back on; emit the verb alone.
     const verbDedup = weightsWithDedup(grammar.verbs, recent.verbs);
     verb = rng.pickWeighted(verbDedup.values, verbDedup.weights);
+    if (verb.endsWith(' at')) {
+      verb = verb.slice(0, -3);
+    }
     body = verb;
   } else {
     const verbDedup = weightsWithDedup(grammar.verbs, recent.verbs);
