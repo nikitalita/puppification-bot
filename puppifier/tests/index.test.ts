@@ -1,11 +1,13 @@
 import { expect } from 'chai';
 import {
+  defaultProfile,
   Puppifier,
   puppify,
   puppify_classification,
   puppify_text,
   puppifyClassification,
   type PhraseEmotionClassification,
+  type Profile,
   type PuppifyResult,
 } from '../src/index.ts';
 import {
@@ -266,6 +268,29 @@ describe('Puppifier class', () => {
     const r2 = await dog.translate('I am so happy! I got a promotion!');
     expect(r1.text).to.equal(r2.text);
   });
+
+  it('recent-use buffers persist across translateClassification calls', () => {
+    // The Puppifier carries its recent-use buffers across calls, so the
+    // second call's RNG _and_ dedup history both differ from a fresh
+    // puppify_classification call seeded to match its mid-stream state.
+    //
+    // Concretely: a Puppifier-second-call differs from a function-form
+    // call seeded with that Puppifier's resulting `seed`, because the
+    // function form sees an empty buffer.
+    const dog = new Puppifier({ seed: 'persist-test' });
+    const a1 = dog.translateClassification(happyClassification);
+    const a2 = dog.translateClassification(happyClassification);
+
+    // Sanity: stream advances.
+    expect(a1.text).to.not.equal(a2.text);
+
+    // A fresh function-form call with the same seed equals the FIRST
+    // Puppifier call (both start with empty buffers + identical RNG).
+    const fn = puppify_classification(happyClassification, {
+      seed: 'persist-test',
+    });
+    expect(fn.text).to.equal(a1.text);
+  });
 });
 
 describe('result.seed surfacing', () => {
@@ -283,5 +308,100 @@ describe('result.seed surfacing', () => {
   it('is a number when seed is omitted', () => {
     const r: PuppifyResult = puppify_classification(happyClassification);
     expect(r.seed).to.be.a('number');
+  });
+});
+
+describe('custom profile option', () => {
+  // A profile that forces every sound base to "yip" with no morphology
+  // and no actions, so the output is trivially predictable.
+  const yipOnly: Profile = {
+    ...defaultProfile,
+    palettes: Object.fromEntries(
+      (
+        [
+          'highPositive',
+          'lowPositive',
+          'highNegative',
+          'fear',
+          'lowNegative',
+          'curious',
+          'neutral',
+        ] as const
+      ).map((k) => [k, { sounds: [{ base: 'yip', weight: 1 }] }]),
+    ) as Profile['palettes'],
+    morphology: {
+      ...defaultProfile.morphology,
+      stretchVowelBase: 0,
+      stretchVowelIntensityScale: 0,
+      doubleLeadBase: 0,
+      doubleLeadIntensityScale: 0,
+      repeatBase: 0,
+      repeatIntensityScale: 0,
+      uppercaseBase: 0,
+      uppercaseIntensityScale: 0,
+      capitalizeFirstBase: 0,
+    },
+    density: {
+      ...defaultProfile.density,
+      actionsPerSentence: 0,
+    },
+    templates: [{ slots: ['sound'], weight: 1 }],
+  };
+
+  it('puppify_classification respects a custom profile', () => {
+    const r = puppify_classification(happyClassification, {
+      seed: 1,
+      profile: yipOnly,
+    });
+    // Every emitted sound token is exactly 'yip' (case-insensitive: the
+    // translator may uppercase the last cluster on '!'), no actions.
+    for (const s of r.sentences) {
+      const tokens = s.dog.split(/\s+/).filter((t) => t.length > 0);
+      expect(tokens.length).to.be.greaterThan(0);
+      for (const tok of tokens) {
+        expect(tok).to.not.match(/^\*/, `unexpected action token: ${tok}`);
+        expect(tok.replace(/[!?.]+$/, '').toLowerCase()).to.equal(
+          'yip',
+          `expected token "yip", got "${tok}" in: ${s.dog}`,
+        );
+      }
+    }
+  });
+
+  it('puppify forwards profile through to render', async () => {
+    const r = await puppify('I am so happy! I got a promotion!', {
+      seed: 1,
+      classifier: happyFake(),
+      profile: yipOnly,
+    });
+    expect(r.text).to.match(/^(?:yip[!?.]?\s*)+$/i);
+  });
+
+  it('Puppifier uses the profile passed at construction', async () => {
+    const dog = new Puppifier({
+      seed: 1,
+      classifier: happyFake(),
+      profile: yipOnly,
+    });
+    const r = await dog.translate('I am so happy! I got a promotion!');
+    expect(r.text).to.match(/^(?:yip[!?.]?\s*)+$/i);
+  });
+
+  it('omitted profile falls back to defaultProfile', () => {
+    const a = puppify_classification(happyClassification, { seed: 7 });
+    const b = puppify_classification(happyClassification, {
+      seed: 7,
+      profile: defaultProfile,
+    });
+    expect(a).to.deep.equal(b);
+  });
+
+  it('different profiles produce different output for the same seed', () => {
+    const a = puppify_classification(happyClassification, { seed: 7 });
+    const b = puppify_classification(happyClassification, {
+      seed: 7,
+      profile: yipOnly,
+    });
+    expect(a.text).to.not.equal(b.text);
   });
 });

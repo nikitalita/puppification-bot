@@ -6,9 +6,14 @@ import {
 } from 'emotion-classifier';
 import { defaultProfile, type Profile } from './profile.js';
 import { createRandom, type Random } from './random.js';
-import { makeRecentBuffers, translateSentence } from './translator.js';
+import {
+  makeRecentBuffers,
+  translateSentence,
+  type TranslateBuffers,
+} from './translator.js';
 
 export type { Classifier, PhraseEmotionClassification, ToneScore };
+export { defaultProfile } from './profile.js';
 export type { Profile } from './profile.js';
 
 export interface PuppifiedSentence {
@@ -39,19 +44,29 @@ export interface PuppifyOptions {
    * `puppify_classification` / `Puppifier#translateClassification`.
    */
   topK?: number;
+  /**
+   * Custom Profile to drive palettes, grammars, morphology, density, and
+   * templates. When omitted, {@link defaultProfile} is used. Build derived
+   * profiles by spreading: `{ ...defaultProfile, density: { ... } }`.
+   */
+  profile?: Profile;
 }
 
 /**
  * Single shared render path. Both entry points and the Puppifier class
  * delegate here, so they cannot drift.
+ *
+ * `buffers` is supplied by the caller so that stateful clients (the
+ * Puppifier class) can carry their recent-use windows across translate
+ * calls, while the stateless functions construct fresh buffers per call.
  */
 function renderClassification(
   classification: PhraseEmotionClassification,
   random: Random,
   seed: number,
   profile: Profile,
+  buffers: TranslateBuffers,
 ): PuppifyResult {
-  const buffers = makeRecentBuffers(profile);
   const ctx = { rng: random, profile, buffers };
   const sentences: PuppifiedSentence[] = classification.sentences.map((s) => ({
     source: s.text,
@@ -82,7 +97,14 @@ export function puppify_classification(
   options: PuppifyOptions = {},
 ): PuppifyResult {
   const { random, seed } = createRandom(options.seed);
-  return renderClassification(classification, random, seed, defaultProfile);
+  const profile = options.profile ?? defaultProfile;
+  return renderClassification(
+    classification,
+    random,
+    seed,
+    profile,
+    makeRecentBuffers(profile),
+  );
 }
 
 /** camelCase alias of {@link puppify_classification}. */
@@ -110,13 +132,16 @@ export async function puppify(
 export const puppify_text = puppify;
 
 /**
- * Stateful variant. Holds a single RNG stream and (optionally) an
- * injected classifier so successive `translate()` / `translateClassification()`
- * calls share the same deterministic stream after `setSeed(...)`.
+ * Stateful variant. Holds a single RNG stream, an injected classifier
+ * (optional), and a single set of recent-use buffers so successive
+ * `translate()` / `translateClassification()` calls share both the
+ * deterministic stream and the dedup window. `setSeed(...)` resets both,
+ * giving a fully reproducible starting state.
  */
 export class Puppifier {
   private random: Random;
   private currentSeed: number;
+  private buffers: TranslateBuffers;
   private readonly classifier: Classifier | undefined;
   private readonly topK: number | undefined;
   private readonly profile: Profile;
@@ -127,14 +152,19 @@ export class Puppifier {
     this.currentSeed = seed;
     this.classifier = options.classifier;
     this.topK = options.topK;
-    this.profile = defaultProfile;
+    this.profile = options.profile ?? defaultProfile;
+    this.buffers = makeRecentBuffers(this.profile);
   }
 
-  /** Reset the RNG stream from a fresh seed. */
+  /**
+   * Reset the RNG stream from a fresh seed and clear the recent-use
+   * buffers. After this call, the next translation is fully reproducible.
+   */
   setSeed(seed: number | string): void {
     const { random, seed: numericSeed } = createRandom(seed);
     this.random = random;
     this.currentSeed = numericSeed;
+    this.buffers = makeRecentBuffers(this.profile);
   }
 
   /** Runs the classifier on `text`, then renders. */
@@ -148,6 +178,7 @@ export class Puppifier {
       this.random,
       this.currentSeed,
       this.profile,
+      this.buffers,
     );
   }
 
@@ -163,6 +194,7 @@ export class Puppifier {
       this.random,
       this.currentSeed,
       this.profile,
+      this.buffers,
     );
   }
 }

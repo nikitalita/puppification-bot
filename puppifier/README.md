@@ -85,7 +85,32 @@ interface PuppifyOptions {
   seed?: number | string;     // omit for crypto-random; pass to reproduce
   classifier?: Classifier;    // injectable for tests; ignored by *_classification
   topK?: number;              // forwarded to emotion-classifier; ignored by *_classification
+  profile?: Profile;          // custom personality profile; defaults to defaultProfile
 }
+```
+
+### `Profile`
+
+A `Profile` bundles every personality-tunable knob: palettes, action grammars,
+morphology probabilities, density, and sentence templates. The exported
+`defaultProfile` is the shipped personality; build derived profiles by spreading:
+
+```ts
+import { defaultProfile, puppify, type Profile } from 'puppifier';
+
+const chillPup: Profile = {
+  ...defaultProfile,
+  density: {
+    ...defaultProfile.density,
+    soundsPerWord: 0.5,
+    actionsPerSentence: 0.4,
+  },
+};
+
+await puppify('I am so happy! I got a promotion!', {
+  seed: 42,
+  profile: chillPup,
+});
 ```
 
 ## How it works
