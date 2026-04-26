@@ -1,3 +1,4 @@
+import type { SoundEntry } from './palettes.js';
 import type { Random } from './random.js';
 
 /**
@@ -152,8 +153,11 @@ function clamp(x: number, lo: number, hi: number): number {
 }
 
 /**
- * Compose all morphology ops on `base`. Each op fires probabilistically
- * with `intensity in [0, 1]` modulating most knobs. Order:
+ * Compose all morphology ops on `entry.base`. Each op fires
+ * probabilistically with `intensity in [0, 1]` modulating most knobs.
+ * Takes the full `SoundEntry` (rather than a bare base string) so future
+ * per-entry hints (e.g. allowed/blocked ops) can be threaded through
+ * without changing this signature again. Order:
  *
  * 1. decide repeat count (e.g. `bark` -> emit 2 instances)
  * 2. for **each** instance, independently roll consonant doubling
@@ -165,16 +169,17 @@ function clamp(x: number, lo: number, hi: number): number {
  *    repetition looks like `BBAAARK BAARK`, not `BBAAARK baark`.
  */
 export function morph(
-  base: string,
+  entry: SoundEntry,
   intensity: number,
   rng: Random,
   probs: MorphologyProbs,
 ): string {
+  const base = entry.base;
   const i = clamp(intensity, 0, 1);
 
   const pDouble = clamp(probs.doubleLeadBase + probs.doubleLeadIntensityScale * i, 0, 1);
   const pStretch = clamp(probs.stretchVowelBase + probs.stretchVowelIntensityScale * i, 0, 1);
-  const pRepeat = clamp(probs.repeatBase + probs.repeatIntensityScale * i, 0, 1);
+  const pRepeat = entry.weight >= 1 ? clamp(probs.repeatBase + probs.repeatIntensityScale * i, 0, 1) : 0;
 
   // Decide the repeat count up front; each instance is then jittered
   // independently so duplicates aren't carbon copies of one another.

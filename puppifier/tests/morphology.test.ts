@@ -122,9 +122,11 @@ describe('morph composer', () => {
     capitalizeFirstBase: 0,
   };
 
+  const ruff = { base: 'ruff', weight: 1 };
+
   it('returns base unchanged when all probabilities are zero', () => {
     const rng = fixedRandom(0.99);
-    expect(morph('ruff', 0.5, rng, baseProbs)).to.equal('ruff');
+    expect(morph(ruff, 0.5, rng, baseProbs)).to.equal('ruff');
   });
 
   it('always-true rng with all probs at 1 fires every op', () => {
@@ -149,7 +151,7 @@ describe('morph composer', () => {
       bool: () => true,
       shuffle: (items) => items.slice(),
     };
-    const out = morph('ruff', 1, rng, probs);
+    const out = morph(ruff, 1, rng, probs);
     expect(out.toUpperCase()).to.equal(out);
     expect(out).to.include(' ');
   });
@@ -169,8 +171,8 @@ describe('morph composer', () => {
       shuffle: (items) => items.slice(),
     });
     const rng = rngThatFiresAt(0.4);
-    expect(morph('ruff', 0.3, rng, probs)).to.equal('ruff');
-    expect(morph('ruff', 0.5, rng, probs)).to.not.equal('ruff');
+    expect(morph(ruff, 0.3, rng, probs)).to.equal('ruff');
+    expect(morph(ruff, 0.5, rng, probs)).to.not.equal('ruff');
   });
 
   it('uppercase is mutually exclusive with capitalizeFirst', () => {
@@ -188,6 +190,6 @@ describe('morph composer', () => {
       bool: (p) => p >= 1,
       shuffle: (items) => items.slice(),
     };
-    expect(morph('ruff', 0, rng, probs)).to.equal('RUFF');
+    expect(morph(ruff, 0, rng, probs)).to.equal('RUFF');
   });
 });

@@ -63,7 +63,9 @@ function isAllUppercase(s: string): boolean {
  * Strategy: pick a palette key by mix weight, then within that palette
  * pick a `SoundEntry` weighted by its base weight, with recently-used
  * base sounds zeroed out. If the chosen palette has every entry recent,
- * we fall back to ignoring the dedup so we never deadlock.
+ * we fall back to ignoring the dedup so we never deadlock. Returns the
+ * full entry so the caller can pass it through to `morph`, which may
+ * use per-entry metadata beyond `base`.
  */
 function pickSound(
   mix: PaletteMix,
@@ -71,7 +73,7 @@ function pickSound(
   recent: RecentBuffer<string>,
   palettes: Record<PaletteKey, Palette>,
   source: 'sounds' | 'interjections',
-): string {
+): SoundEntry {
   const keys = PALETTE_KEYS;
   const keyWeights = keys.map((k) => mix.weights[k]);
   const keyTotal = keyWeights.reduce((s, w) => s + (w > 0 ? w : 0), 0);
@@ -89,11 +91,8 @@ function pickSound(
   const total = dedupedWeights.reduce((s, w) => s + (w > 0 ? w : 0), 0);
   const weights = total > 0 ? dedupedWeights : entries.map((e) => e.weight);
 
-  const chosen = rng.pickWeighted(
-    entries.map((e) => e.base),
-    weights,
-  );
-  recent.push(chosen);
+  const chosen = rng.pickWeighted(entries, weights);
+  recent.push(chosen.base);
   return chosen;
 }
 
@@ -113,9 +112,9 @@ function generateSoundCluster(
   const tokens: string[] = [];
   const bases: string[] = [];
   for (let i = 0; i < count; i++) {
-    const base = pickSound(mix, rng, buffers.sounds, profile.palettes, source);
-    bases.push(base);
-    const token = morph(base, mix.intensity, rng, profile.morphology);
+    const entry = pickSound(mix, rng, buffers.sounds, profile.palettes, source);
+    bases.push(entry.base);
+    const token = morph(entry, mix.intensity, rng, profile.morphology);
     tokens.push(token);
   }
   return { cluster: tokens.join(' '), bases };
