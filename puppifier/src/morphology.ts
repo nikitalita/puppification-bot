@@ -28,11 +28,12 @@ export interface MorphologyProbs {
   repeatMin: number;
   repeatMax: number;
 
-  /** Probability of full uppercase. Rare; high intensity only. */
-  uppercaseBase: number;
-  uppercaseIntensityScale: number;
-
-  /** Probability of capitalizing only the first letter (less aggressive than full caps). */
+  /**
+   * Probability of capitalizing only the first letter (less aggressive
+   * than full caps). Full-uppercase morphology is driven per-palette by
+   * `Palette.capsProbability` instead, since shoutiness is more about
+   * tone than personality.
+   */
   capitalizeFirstBase: number;
 }
 
@@ -155,9 +156,9 @@ function clamp(x: number, lo: number, hi: number): number {
 /**
  * Compose all morphology ops on `entry.base`. Each op fires
  * probabilistically with `intensity in [0, 1]` modulating most knobs.
- * Takes the full `SoundEntry` (rather than a bare base string) so future
- * per-entry hints (e.g. allowed/blocked ops) can be threaded through
- * without changing this signature again. Order:
+ * Takes the full `SoundEntry` (rather than a bare base string) so
+ * per-entry hints (e.g. `noDuplicates`) can be threaded through without
+ * changing this signature again. Order:
  *
  * 1. decide repeat count (e.g. `bark` -> emit 2 instances)
  * 2. for **each** instance, independently roll consonant doubling
@@ -167,10 +168,16 @@ function clamp(x: number, lo: number, hi: number): number {
  * 4. casing: full uppercase OR first-letter capitalization (mutually
  *    exclusive). Casing applies to the whole join so a shouted
  *    repetition looks like `BBAAARK BAARK`, not `BBAAARK baark`.
+ *
+ * `capsProbability` comes from the picked palette and is scaled by
+ * `intensity`, so high-arousal palettes (`highPositive`,
+ * `highNegative`, `fear`) shout often while quiet ones (`neutral`,
+ * `lowPositive`, `lowNegative`) almost never do.
  */
 export function morph(
   entry: SoundEntry,
   intensity: number,
+  capsProbability: number,
   rng: Random,
   probs: MorphologyProbs,
 ): string {
@@ -206,7 +213,7 @@ export function morph(
 
   let out = instances.join(' ');
 
-  const pUpper = clamp(probs.uppercaseBase + probs.uppercaseIntensityScale * i, 0, 1);
+  const pUpper = clamp(capsProbability * i, 0, 1);
   if (rng.bool(pUpper)) {
     out = uppercase(out);
   } else if (rng.bool(probs.capitalizeFirstBase)) {

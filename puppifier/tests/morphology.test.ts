@@ -117,8 +117,6 @@ describe('morph composer', () => {
     repeatIntensityScale: 0,
     repeatMin: 1,
     repeatMax: 1,
-    uppercaseBase: 0,
-    uppercaseIntensityScale: 0,
     capitalizeFirstBase: 0,
   };
 
@@ -126,7 +124,7 @@ describe('morph composer', () => {
 
   it('returns base unchanged when all probabilities are zero', () => {
     const rng = fixedRandom(0.99);
-    expect(morph(ruff, 0.5, rng, baseProbs)).to.equal('ruff');
+    expect(morph(ruff, 0.5, 0, rng, baseProbs)).to.equal('ruff');
   });
 
   it('always-true rng with all probs at 1 fires every op', () => {
@@ -135,7 +133,6 @@ describe('morph composer', () => {
       stretchVowelBase: 1,
       doubleLeadBase: 1,
       repeatBase: 1,
-      uppercaseBase: 1,
       vowelStretchMin: 2,
       vowelStretchMax: 2,
       leadDoubleMin: 1,
@@ -151,7 +148,7 @@ describe('morph composer', () => {
       bool: () => true,
       shuffle: (items) => items.slice(),
     };
-    const out = morph(ruff, 1, rng, probs);
+    const out = morph(ruff, 1, 1, rng, probs);
     expect(out.toUpperCase()).to.equal(out);
     expect(out).to.include(' ');
   });
@@ -171,17 +168,19 @@ describe('morph composer', () => {
       shuffle: (items) => items.slice(),
     });
     const rng = rngThatFiresAt(0.4);
-    expect(morph(ruff, 0.3, rng, probs)).to.equal('ruff');
-    expect(morph(ruff, 0.5, rng, probs)).to.not.equal('ruff');
+    expect(morph(ruff, 0.3, 0, rng, probs)).to.equal('ruff');
+    expect(morph(ruff, 0.5, 0, rng, probs)).to.not.equal('ruff');
   });
 
   it('uppercase is mutually exclusive with capitalizeFirst', () => {
     const probs: MorphologyProbs = {
       ...baseProbs,
-      uppercaseBase: 1,
       capitalizeFirstBase: 1,
     };
-    // Probability-honest rng: bool(p) only fires when p >= 1.
+    // Probability-honest rng: bool(p) only fires when p >= 1. With
+    // capsProbability=1 and intensity=1 we get pUpper=1 (caps must fire);
+    // capitalizeFirstBase=1 would fire too, but it's gated behind the
+    // upper branch, so the test asserts upper wins.
     const rng: Random = {
       next: () => 0,
       int: () => 1,
@@ -190,6 +189,22 @@ describe('morph composer', () => {
       bool: (p) => p >= 1,
       shuffle: (items) => items.slice(),
     };
-    expect(morph(ruff, 0, rng, probs)).to.equal('RUFF');
+    expect(morph(ruff, 1, 1, rng, probs)).to.equal('RUFF');
+  });
+
+  it('capsProbability scales by intensity', () => {
+    // With p>=1 rng, full caps only fires when capsProbability * intensity = 1.
+    const rng: Random = {
+      next: () => 0,
+      int: () => 1,
+      pick: (items) => items[0]!,
+      pickWeighted: (items) => items[0]!,
+      bool: (p) => p >= 1,
+      shuffle: (items) => items.slice(),
+    };
+    expect(morph(ruff, 0, 1, rng, baseProbs)).to.equal('ruff');
+    expect(morph(ruff, 1, 0, rng, baseProbs)).to.equal('ruff');
+    expect(morph(ruff, 0.5, 1, rng, baseProbs)).to.equal('ruff');
+    expect(morph(ruff, 1, 1, rng, baseProbs)).to.equal('RUFF');
   });
 });

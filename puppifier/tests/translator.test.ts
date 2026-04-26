@@ -74,12 +74,21 @@ describe('translateSentence', () => {
   it('all-caps source does NOT uppercase words inside multi-word actions', () => {
     // Force a multi-word intransitive action ("stomps off") on every call,
     // a template that always emits an action, and an all-caps source.
+    // Force `actionProbability: 1` on every grammar so the per-mix
+    // emission gate always fires — the test cares about action body
+    // content, not the gate.
+    const grammarsAlwaysFire = Object.fromEntries(
+      Object.entries(defaultProfile.grammars).map(([k, g]) => [
+        k,
+        { ...g, actionProbability: 1 },
+      ]),
+    ) as typeof defaultProfile.grammars;
     const profile = {
       ...defaultProfile,
       grammars: {
-        ...defaultProfile.grammars,
+        ...grammarsAlwaysFire,
         highNegative: {
-          ...defaultProfile.grammars.highNegative,
+          ...grammarsAlwaysFire.highNegative,
           intransitiveVerbs: [{ value: 'stomps off', weight: 1 }],
           intransitiveProbability: 1,
           modifierProbability: 0,
@@ -285,5 +294,53 @@ describe('translateSentence', () => {
     }
     // The gap should be substantial — happy ~0.85, neutral ~0.25.
     expect(happyHits).to.be.greaterThan(neutralHits + N * 0.3);
+  });
+
+  it('high-arousal palettes shout far more often than calm palettes', () => {
+    // Driven by per-palette `capsProbability`. We measure the share of
+    // sound tokens that are fully uppercase (no actions, no source-caps
+    // forcing involved). Sad sentences (palette caps ~0.05) should be
+    // mostly lowercase; angry ones (palette caps ~0.7) should yell often.
+    const N = 60;
+    let calmCapsTokens = 0;
+    let calmTotalTokens = 0;
+    let loudCapsTokens = 0;
+    let loudTotalTokens = 0;
+    for (let i = 0; i < N; i++) {
+      const calm = translateSentence(
+        'this is a calm sentence',
+        sadTone,
+        ctxAt(3000 + i),
+      );
+      const loud = translateSentence(
+        'this is an angry sentence',
+        angryTone,
+        ctxAt(4000 + i),
+      );
+      const soundsOf = (s: string) =>
+        s.replace(/\*[^*]+\*/g, ' ').split(/\s+/).filter((t) => /[a-z]/i.test(t));
+      const isCaps = (t: string) => {
+        const letters = t.replace(/[^A-Za-z]/g, '');
+        return letters.length > 1 && letters === letters.toUpperCase();
+      };
+      const calmTokens = soundsOf(calm);
+      calmTotalTokens += calmTokens.length;
+      calmCapsTokens += calmTokens.filter(isCaps).length;
+      const loudTokens = soundsOf(loud);
+      loudTotalTokens += loudTokens.length;
+      loudCapsTokens += loudTokens.filter(isCaps).length;
+    }
+    expect(calmTotalTokens).to.be.greaterThan(0);
+    expect(loudTotalTokens).to.be.greaterThan(0);
+    const calmRatio = calmCapsTokens / calmTotalTokens;
+    const loudRatio = loudCapsTokens / loudTotalTokens;
+    // Expected (at intensity ≈ 0.85–0.9): calm ≈ 0.04, loud ≈ 0.6.
+    // Use generous margins so this isn't seed-flaky.
+    expect(calmRatio).to.be.lessThan(0.25, `calm caps ratio ${calmRatio}`);
+    expect(loudRatio).to.be.greaterThan(0.4, `loud caps ratio ${loudRatio}`);
+    expect(loudRatio).to.be.greaterThan(
+      calmRatio + 0.3,
+      `expected at least 30pp gap, got calm=${calmRatio} loud=${loudRatio}`,
+    );
   });
 });

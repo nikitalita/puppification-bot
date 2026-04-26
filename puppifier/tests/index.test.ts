@@ -327,7 +327,10 @@ describe('custom profile option', () => {
           'curious',
           'neutral',
         ] as const
-      ).map((k) => [k, { sounds: [{ base: 'yip', weight: 1 }] }]),
+      ).map((k) => [
+        k,
+        { sounds: [{ base: 'yip', weight: 1 }], capsProbability: 0 },
+      ]),
     ) as Profile['palettes'],
     morphology: {
       ...defaultProfile.morphology,
@@ -337,8 +340,6 @@ describe('custom profile option', () => {
       doubleLeadIntensityScale: 0,
       repeatBase: 0,
       repeatIntensityScale: 0,
-      uppercaseBase: 0,
-      uppercaseIntensityScale: 0,
       capitalizeFirstBase: 0,
     },
     density: {

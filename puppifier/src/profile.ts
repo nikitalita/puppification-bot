@@ -75,9 +75,6 @@ const defaultMorphology: MorphologyProbs = {
   repeatMin: 1,
   repeatMax: 1,
 
-  uppercaseBase: 0.02,
-  uppercaseIntensityScale: 0.15,
-
   capitalizeFirstBase: 0.15,
 };
 

@@ -168,6 +168,30 @@ const chatty: Profile = {
 };
 ```
 
+#### `palettes[key].capsProbability`
+
+Each `Palette` carries a `capsProbability` in `[0, 1]` that controls how
+often a sound drawn from that palette gets full-uppercase morphology
+(`bark` → `BARK`). The effective per-token probability is
+`palette.capsProbability * intensity`, so high-arousal palettes
+(`highPositive` ~0.6, `highNegative` ~0.7, `fear` ~0.5) shout often as a
+sentence's intensity grows, while quiet palettes (`neutral`,
+`lowPositive`, `lowNegative` ~0.05) almost never do. This replaces the
+older global `morphology.uppercaseBase` / `uppercaseIntensityScale`
+knobs — shoutiness is more about tone than personality, so it lives on
+the palette. Tune to taste:
+
+```ts
+const restrained: Profile = {
+  ...defaultProfile,
+  palettes: {
+    ...defaultProfile.palettes,
+    highPositive: { ...defaultProfile.palettes.highPositive, capsProbability: 0.2 },
+    highNegative: { ...defaultProfile.palettes.highNegative, capsProbability: 0.3 },
+  },
+};
+```
+
 ## How it works
 
 1. **Classify** the input via `emotion-classifier`, getting top-K tones for the phrase and each sentence.

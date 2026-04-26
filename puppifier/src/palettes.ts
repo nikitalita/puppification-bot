@@ -17,6 +17,17 @@ export interface Palette {
    * `sounds` when omitted.
    */
   interjections?: SoundEntry[];
+  /**
+   * Probability (at intensity = 1) that a sound drawn from this palette
+   * gets full-uppercase morphology. The translator scales by intensity
+   * so the effective per-token probability is `capsProbability * intensity`.
+   *
+   * High-arousal palettes (`highPositive`, `highNegative`, `fear`)
+   * should sit high — barking out joy or anger reads naturally as
+   * shouting. Low-arousal palettes (`neutral`, `lowPositive`,
+   * `lowNegative`) should sit near zero so calm output stays calm.
+   */
+  capsProbability: number;
 }
 
 /**
@@ -40,6 +51,7 @@ export const PALETTES: Record<PaletteKey, Palette> = {
       { base: 'arooo', weight: 2, noDuplicates: true },
       { base: 'yipe', weight: 2, noDuplicates: true },
     ],
+    capsProbability: 0.6,
   },
   lowPositive: {
     sounds: [
@@ -56,6 +68,7 @@ export const PALETTES: Record<PaletteKey, Palette> = {
       { base: 'mrrrf', weight: 2 },
       { base: 'hrrm', weight: 2, noDuplicates: true },
     ],
+    capsProbability: 0.05,
   },
   highNegative: {
     sounds: [
@@ -70,6 +83,7 @@ export const PALETTES: Record<PaletteKey, Palette> = {
       { base: 'grrrr', weight: 3 },
       { base: 'rrrgh', weight: 2 },
     ],
+    capsProbability: 0.7,
   },
   fear: {
     sounds: [
@@ -84,6 +98,7 @@ export const PALETTES: Record<PaletteKey, Palette> = {
       { base: 'eeep', weight: 2 },
       { base: 'mrrr', weight: 2 },
     ],
+    capsProbability: 0.5,
   },
   lowNegative: {
     sounds: [
@@ -97,6 +112,7 @@ export const PALETTES: Record<PaletteKey, Palette> = {
       { base: 'awooo', weight: 3, noDuplicates: true },
       { base: 'ohhhh', weight: 0.5, noDuplicates: true },
     ],
+    capsProbability: 0.05,
   },
   curious: {
     sounds: [
@@ -110,6 +126,7 @@ export const PALETTES: Record<PaletteKey, Palette> = {
       { base: 'hrm', weight: 3 },
       { base: 'ahrooo', weight: 2, noDuplicates: true },
     ],
+    capsProbability: 0.1,
   },
   neutral: {
     sounds: [
@@ -123,6 +140,7 @@ export const PALETTES: Record<PaletteKey, Palette> = {
     ],
     interjections: [
       { base: 'arrruuf', weight: 3 },
-    ]
+    ],
+    capsProbability: 0.05,
   },
 };
