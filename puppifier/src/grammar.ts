@@ -141,7 +141,7 @@ export const GRAMMARS: Record<PaletteKey, ActionGrammar> = {
     ],
     intransitiveVerbs: [
       { value: 'flops', weight: 2 },
-      { value: 'rests its chin on your knee', weight: 2 },
+      { value: 'rests chin on your knee', weight: 2 },
     ],
     modifierProbability: 0.3,
     intransitiveProbability: 0.25,
