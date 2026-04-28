@@ -54,16 +54,34 @@ export const EASTER_EGGS: EasterEgg[] = [
   },
   // More specific patterns first so they win the first-match race.
   {
-    id: 'whos-a-good',
-    match: /\bwho(?:'?s|\s+is)\s+a\s+good\b/,
+    id: 'im-a-good',
+    match: /\b(?:i\s+am|i'?m)\s+a\s+good\b/,
     kind: 'override',
-    render: () => `*tail thumps loudly*`,
+    render: ({ rng }) => {
+      const excited = pickOne(['yip!', 'arf!', 'borf!'], rng);
+      return `${excited} *tail thumps loudly*`;
+    },
   },
   {
     id: 'good-boy',
     match: /\bgood\s+(?:boy|dog|girl|pup|puppy)\b/,
     kind: 'override',
     render: () => `BARK BARK BARK! *spins in a circle*`,
+  },
+  {
+    id: 'kitty',
+    match: /\b(?:meow|mrow)\b/,
+    kind: 'override',
+    render: () => `*imitates a cat*`,
+  },
+  {
+    id: 'aroo-long-word',
+    match: /\b(?:[a-z]{15,})\b/,
+    kind: 'override',
+    render: ({ rng }) => {
+      const numOs = rng.int(5,25);
+      return `Ar${'o'.repeat(numOs)}!`;
+    },
   },
   {
     id: 'walk-treat-ball-park',
@@ -100,7 +118,9 @@ export function findTags(sentence: string): EasterEgg[] {
   const out: EasterEgg[] = [];
   for (const egg of EASTER_EGGS) {
     if (egg.kind !== 'tag') continue;
-    if (testMatch(egg.match, norm)) out.push(egg);
+    if (testMatch(egg.match, norm)) { 
+      out.push(egg);
+    }
   }
   return out;
 }

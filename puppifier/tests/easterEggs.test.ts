@@ -27,8 +27,8 @@ describe('easter eggs', () => {
       ['good boy', 'good-boy'],
       ['good girl!', 'good-boy'],
       ['Good Pup', 'good-boy'],
-      ['who is a good boy', 'whos-a-good'],
-      ["who's a good", 'whos-a-good'],
+      ['i\'m a good boy', 'im-a-good'],
+      ["i am a good", 'im-a-good'],
     ];
 
     for (const [text, expectedId] of overridesByPhrase) {
