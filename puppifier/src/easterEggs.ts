@@ -75,6 +75,15 @@ export const EASTER_EGGS: EasterEgg[] = [
     render: () => `*imitates a cat*`,
   },
   {
+    id: 'aroo-long-word',
+    match: /\b(?:[a-z]{15,})\b/,
+    kind: 'override',
+    render: ({ rng }) => {
+      const numOs = rng.int(5,25);
+      return `Ar${'o'.repeat(numOs)}!`;
+    },
+  },
+  {
     id: 'walk-treat-ball-park',
     match: /\b(?:walk|walkies|treat|treats|ball|park|fetch)\b/,
     kind: 'tag',
