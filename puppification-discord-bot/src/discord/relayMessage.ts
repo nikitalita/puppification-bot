@@ -26,6 +26,41 @@ export interface RelayInput {
   webhooks: WebhookManager;
 }
 
+const DOG_IMG_URLS = await getDogUrls();
+
+/**
+ * Get dog URLs from the dog.ceo API
+ * returns empty array on failure.
+ */
+async function getDogUrls(): Promise<string[]> {
+  type DogBreedImagesAPIResponse = {"message": string[], "status": string};
+  const url = "https://dog.ceo/api/breed/hound/images";
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      logger.error(`Dog API Response status: ${response.status}`);
+    }
+
+    const result = await response.json() as DogBreedImagesAPIResponse;
+    if (result.status !== "success") {
+      logger.error(`Dog API Response status: ${result.status}`);
+    }
+    logger.info("Loaded dog URLs.");
+    return result.message as string[];
+  } catch (error) {
+    logger.error('Error from Dog API: ' + (error as Error).message);
+  }
+  return [''];
+}
+
+/**
+ * Helper function to pick a dog url.
+ */
+function pickDogUrl(): string {
+  let idx = Math.floor(Math.random() * DOG_IMG_URLS.length);
+  return DOG_IMG_URLS.slice(idx, idx+1)[0] ?? '';
+}
+
 /**
  * Delete the original message and re-send a puppified version via the
  * channel webhook so it appears under the user's avatar with the
@@ -47,7 +82,7 @@ export async function relayPuppifiedMessage(input: RelayInput): Promise<void> {
   // and voice messages can't be replicated through a webhook; documented
   // as a known limitation.
   const files: AttachmentPayload[] = message.attachments.map((att) => ({
-    attachment: att.url,
+    attachment: pickDogUrl(),
     name: att.name,
     description: att.description ?? undefined,
   }));
