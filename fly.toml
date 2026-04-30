@@ -1,36 +1,33 @@
-# Fly.io configuration for the puppification Discord bot.
+# fly.toml app configuration file generated for puppification-bot on 2026-04-30T20:26:31Z
 #
-# Single always-on machine running a long-lived Discord gateway WS
-# connection. No public HTTP listener -> no `[http_service]` block.
-# Per-bot in-memory state (PuppificationStore, ChannelExemptionStore,
-# webhook cache, per-user FIFO queues) means we run exactly one
-# replica; deploy strategy is `immediate` because the volume is
-# owned by a single machine and rolling deploys can't overlap.
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
-# Set the app name to match `fly apps create <name>`. If you renamed,
-# update this and re-run `fly deploy`.
-app = "puppification-bot"
-primary_region = "iad"
+
+app = 'puppification-bot'
+primary_region = 'iad'
 
 [build]
-  # Dockerfile lives at the repo root. No build args needed.
-
-[env]
-  HF_HOME = "/data/hf"
-  SAVE_LOCATION = "/data/save"
-  NODE_ENV = "production"
-
-# Persistent volume for the ~80 MB GoEmotions ONNX model + tokenizer.
-# Created once via:  fly volumes create hf_cache --region iad --size 1
-# Mounted at /data; HF_HOME above points the HuggingFace cache here so
-# the model survives across deploys / restarts.
-[mounts]
-  source = "hf_cache"
-  destination = "/data"
-
-[[vm]]
-  size = "shared-cpu-1x"
-  memory = "1gb"
 
 [deploy]
-  strategy = "immediate"
+  strategy = 'immediate'
+
+[env]
+  HF_HOME = '/data/hf'
+  NODE_ENV = 'production'
+  SAVE_LOCATION = '/data/save'
+
+[[mounts]]
+  source = 'hf_cache'
+  destination = '/data'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '1gb'
