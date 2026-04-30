@@ -70,6 +70,10 @@ async function loadState() {
     } catch (e: any) {
         if (e?.code === 'ENOENT') {
             // File not found, create
+            const dir = path.dirname(STATE_FILE_PATH);
+            if (!existsSync(dir)) {
+                mkdirSync(dir, { recursive: true });
+            }        
             writeFileSync(STATE_FILE_PATH, JSON.stringify({}, null, 2));
             return {};
         } else {
