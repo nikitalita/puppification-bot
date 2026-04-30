@@ -1,3 +1,6 @@
+import { logger } from '../util/logger.js';
+import { loadStore, saveStore } from './saveState.js';
+
 /**
  * Per-guild set of channels in which the bot will NOT puppify any
  * message, regardless of whether the author is puppified.
@@ -14,6 +17,10 @@
 export class ChannelExemptionStore {
   private readonly byGuild = new Map<string, Set<string>>();
 
+  constructor() {
+    this.load();
+  }
+
   /**
    * Add a channel to the exempt set for `guildId`. Returns true if the
    * channel was newly added, false if it was already exempt.
@@ -26,6 +33,7 @@ export class ChannelExemptionStore {
     }
     if (set.has(channelId)) return false;
     set.add(channelId);
+    this.save();
     return true;
   }
 
@@ -40,6 +48,7 @@ export class ChannelExemptionStore {
     if (set.size === 0) {
       this.byGuild.delete(guildId);
     }
+    this.save();
     return removed;
   }
 
@@ -70,5 +79,32 @@ export class ChannelExemptionStore {
   /** Drop all exemptions. Tests / shutdown only. */
   clear(): void {
     this.byGuild.clear();
+    this.save();
+  }
+
+  private save(): void {
+    let safeGuildInfo: Record<string, Array<string>> = {};
+    for (let [k, v] of this.byGuild.entries()) {
+      safeGuildInfo[k] = Array.from(v.values());
+    }
+    saveStore("exemptions", { byGuild: safeGuildInfo });
+  }
+
+  private async load(): Promise<void> {
+    try {
+      let count = 0;
+      const state = await loadStore("exemptions");
+      if (!state.byGuild) {
+        return;
+      }
+
+      for (let [guildId, channels] of Object.entries(state.byGuild)) {
+        this.byGuild.set(guildId, new Set(channels as Array<string>) );
+        count =+ (channels as Array<string>).length;
+      }
+      logger.info("Loaded", count, "channel exemptions");
+    } catch (error) {
+      logger.error('Failed to load state:', error);
+    }
   }
 }

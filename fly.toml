@@ -17,6 +17,7 @@ primary_region = "iad"
 
 [env]
   HF_HOME = "/data/hf"
+  SAVE_LOCATION = "/data/save"
   NODE_ENV = "production"
 
 # Persistent volume for the ~80 MB GoEmotions ONNX model + tokenizer.

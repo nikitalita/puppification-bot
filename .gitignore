@@ -7,3 +7,5 @@ dist
 .env.local
 .cursor/
 **/.vscode/
+state.json
+**/state.json
