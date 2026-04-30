@@ -1,5 +1,5 @@
 import path, { dirname, resolve } from 'path';
-import { writeFileSync, readFileSync } from 'fs';
+import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { logger } from '../util/logger.js';
 import 'dotenv/config';
@@ -45,12 +45,17 @@ export async function loadStore(store: string) {
 }
 
 async function saveState(data: unknown) {
-  writeFileSync(STATE_FILE_PATH, JSON.stringify(data, null, 2));
+    // ensure the directory exists
+    const dir = path.dirname(STATE_FILE_PATH);
+    if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+    }
+    writeFileSync(STATE_FILE_PATH, JSON.stringify(data, null, 2));
 }
 
 async function loadState() {
-    try{
-        const data = await readFileSync(STATE_FILE_PATH, {"encoding": 'utf8', "flag": "r+"});
+    try {
+        const data = await readFileSync(STATE_FILE_PATH, { "encoding": 'utf8', "flag": "r+" });
         if (!data) {
             logger.warn("Save state was unexpectedly null!");
             return {};
