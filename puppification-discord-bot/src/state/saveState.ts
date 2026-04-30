@@ -2,11 +2,24 @@ import path, { dirname, resolve } from 'path';
 import { writeFileSync, readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { logger } from '../util/logger.js';
+import 'dotenv/config';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+export const STATE_FILE_PATH = getSaveLocation();
 
-const STATE_FILE_PATH = resolve(__dirname, 'state.json');
+function getSaveLocation() {
+    if (process.env?.SAVE_LOCATION) {
+        return resolve(process.env?.SAVE_LOCATION, 'state.json');
+    }
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+
+    const location = resolve(__dirname, 'state.json');
+
+    logger.warn("Environment variable SAVE_LOCATION is not set, defaulting to " + location);
+
+    return location;
+}
+
 
 const stores: { [key: string]: any } = {};
 await loadAllStores(); // Prepopulate stores
