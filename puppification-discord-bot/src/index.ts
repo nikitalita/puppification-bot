@@ -1,4 +1,4 @@
-import { ChannelType, Events, type Guild } from 'discord.js';
+import { ChannelType, Events, MessageFlags, type Guild } from 'discord.js';
 import { createClient } from './client.js';
 import { buildCommandMap, buildCommands } from './commands/index.js';
 import {
@@ -57,6 +57,7 @@ async function main(): Promise<void> {
       await channel.send({
         content: `<@${entry.userId}> is no longer puppified.`,
         allowedMentions: { parse: [] },
+        flags: [MessageFlags.SuppressNotifications],
       });
     } catch (err) {
       logger.warn(
