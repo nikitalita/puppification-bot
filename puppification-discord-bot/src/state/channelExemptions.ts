@@ -100,7 +100,7 @@ export class ChannelExemptionStore {
 
       for (let [guildId, channels] of Object.entries(state.byGuild)) {
         this.byGuild.set(guildId, new Set(channels as Array<string>) );
-        count =+ (channels as Array<string>).length;
+        count += (channels as Array<string>).length;
       }
       logger.info("Loaded", count, "channel exemptions");
     } catch (error) {
