@@ -132,8 +132,8 @@ async function main(): Promise<void> {
 
   setupShutdown(async () => {
     logger.info('Shutting down...');
-    store.clear();
-    exemptions.clear();
+    // Don't clear() on shutdown because it would delete the save. 
+    // Just need to exit to clear memory.
     client.destroy();
   });
 
