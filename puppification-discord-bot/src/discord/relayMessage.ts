@@ -7,6 +7,14 @@ import {
 import type { Entry } from '../state/puppificationStore.js';
 import { logger } from '../util/logger.js';
 import type { WebhookManager } from './webhookManager.js';
+import { createReadStream } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import dogURlsJson from '../assets/urls.json' with { type: "json" };
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Discord error codes we treat specially.
@@ -26,39 +34,7 @@ export interface RelayInput {
   webhooks: WebhookManager;
 }
 
-const DOG_IMG_URLS = await getDogUrls();
-
-/**
- * Get dog URLs from the dog.ceo API
- * returns empty array on failure.
- */
-async function getDogUrls(): Promise<string[]> {
-  type DogBreedImagesAPIResponse = {"message": string[], "status": string};
-  const url = "https://dog.ceo/api/breed/hound/images";
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      logger.error(`Dog API Response status: ${response.status}`);
-    }
-
-    const result = await response.json() as DogBreedImagesAPIResponse;
-    if (result.status !== "success") {
-      logger.error(`Dog API Response status: ${result.status}`);
-    }
-    
-    const imgUrls = result.message as string[];
-    if (imgUrls.length <= 0) {
-      logger.warn("Dog URLs array was empty.");
-    }
-    else {
-      logger.info("Loaded "+imgUrls.length+" dog URLs.");
-    }
-    return imgUrls;
-  } catch (error) {
-    logger.error('Error from Dog API: ' + (error as Error).message);
-  }
-  return [''];
-}
+const DOG_IMG_URLS = dogURlsJson.urls;
 
 /**
  * Helper function to pick a dog url.
@@ -80,10 +56,16 @@ function pickDogUrl(): string {
 export async function relayPuppifiedMessage(input: RelayInput): Promise<void> {
   const { message, entry, puppifiedText, webhooks } = input;
   const channel = message.channel;
-  if (!('guild' in channel) || !channel.guild) return;
+  if (!('guild' in channel) || !channel.guild)  {
+    logger.warn("No guild property on channel", channel);
+    return;
+  }
 
   const webhook = await webhooks.getOrCreate(channel);
-  if (!webhook) return;
+  if (!webhook) {
+    logger.warn("No available webhook for message", channel.type);
+    return;
+  }
 
   // Forward attachments as files. Embeds, stickers, reply-references,
   // and voice messages can't be replicated through a webhook; documented
