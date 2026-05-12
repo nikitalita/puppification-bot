@@ -205,7 +205,7 @@ describe('translateSentence', () => {
         buffers: makeRecentBuffers(profile),
       };
       const out = translateSentence('Hello there.', happyTone, ctx);
-      const tokens = out.match(/\*[^*]+\*|[^\s*]+/g) ?? [];
+      const tokens = out.match(/\*[^*]+\*|[^\s*,]+/g) ?? [];
       let seenAction = false;
       for (const tok of tokens) {
         if (tok.startsWith('*')) {

@@ -1,6 +1,6 @@
 import type { ToneScore } from 'emotion-classifier';
-import { findOverride, findTags } from './easterEggs.js';
-import { blendActionProbability, composeAction } from './grammar.js';
+import { EasterEgg, findOverride, findTags, findWordReplacement } from './easterEggs.js';
+import { blendActionProbability, composeAction, puppyWordsString, puppyWordsRegex } from './grammar.js';
 import { morph } from './morphology.js';
 import type { Palette, SoundEntry } from './palettes.js';
 import type { Profile } from './profile.js';
@@ -33,9 +33,23 @@ export function makeRecentBuffers(profile: Profile): TranslateBuffers {
   };
 }
 
-function countWords(s: string): number {
-  const m = s.trim().match(/\S+/g);
-  return m ? m.length : 0;
+function isAllowedWord(word: string): boolean {
+  let testWord = word.toLowerCase();
+  if (puppyWordsString.has(testWord)) {
+    return true;
+  }
+  for (let r of puppyWordsRegex) {
+    if (r.test(testWord)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function getWords(s: string): string[] | null {
+  const m = s.trim().match(/(\S+)/g);
+  return m;
 }
 
 function endsWithEllipsis(s: string): boolean {
@@ -187,6 +201,23 @@ function hasOpenerAction(parts: string[]): boolean {
   return parts.length > 0 && parts[0]!.startsWith('*');
 }
 
+function getAllowedWordCount(wordArray: string[]): number {
+  let returnCount = 0;
+  for (let word of wordArray) {
+    let wordReplace: EasterEgg | undefined = undefined;
+    if (isAllowedWord(word)) {
+      returnCount++;
+    }
+    else if (
+      (wordReplace = findWordReplacement(word)) 
+      && wordReplace?.render
+    ) {
+      returnCount++;
+    }
+  }
+  return returnCount;
+}
+
 /**
  * Translate a single sentence into a dog-speech string. See the plan's
  * "translator algorithm" section for the full step-by-step.
@@ -196,7 +227,7 @@ export function translateSentence(
   tone: readonly ToneScore[],
   ctx: TranslateContext,
 ): string {
-  const trimmed = sentence.trim();
+  let trimmed = sentence.trim();
   if (trimmed.length === 0) return '';
 
   let addNewLine = false;
@@ -204,11 +235,18 @@ export function translateSentence(
     addNewLine = true;
   }
 
+  // Hard cap length at 1000 chars, prevent going over discord max and 
+  // prevent long processing times. Preserving long messages isn't of much 
+  // benefit.
+  if (trimmed.length > 1000) {
+    trimmed = trimmed.substring(0, 1000);
+  }
+
   const mix = blendTones(tone);
 
   const override = findOverride(trimmed);
   if (override?.render) {
-    return override.render({ rng: ctx.rng, mix }) + (addNewLine ? '\n' : '');
+    return override.render({ rng: ctx.rng, mix, matches: override.matches }) + (addNewLine ? '\n' : '');
   }
 
   const tags = findTags(trimmed);
@@ -217,10 +255,12 @@ export function translateSentence(
   const template = pickTemplate(mix.intensity, ctx.rng, ctx.profile.templates);
   const density = ctx.profile.density;
 
-  const wordCount = countWords(trimmed);
+  const wordArray = getWords(trimmed);
+  if (!wordArray) { return ""; }
+  const wordCount = wordArray?.length;
   const expectedSounds = Math.max(
     1,
-    wordCount * density.soundsPerWord + (mix.intensity > 0 ? 0 : 0),
+    (wordCount - getAllowedWordCount(wordArray)) * density.soundsPerWord + (mix.intensity > 0 ? 0 : 0),
   );
   const totalSounds = jittered(
     expectedSounds,
@@ -256,6 +296,32 @@ export function translateSentence(
   let soundIdx = 0;
   let actionsEmitted = 0;
   const parts: string[] = [];
+  let allowedInputEmitted = false;
+
+  /**
+   * Side effect: increments actions emitted for every action easter egg. 
+   * @param wordArray input separated into words
+   * @returns array of parts for sentence from allowed and replaced words
+   */
+  function getAllowedWords(wordArray: string[]): string[] {
+    let returnParts = [];
+    for (let word of wordArray) {
+      let wordReplace: EasterEgg | undefined = undefined;
+      if (isAllowedWord(word)) {
+        returnParts.push(word);
+      }
+      else if (
+        (wordReplace = findWordReplacement(word)) 
+        && wordReplace?.render
+      ) {
+        returnParts.push(wordReplace.render({ rng: ctx.rng, mix, matches: wordReplace.matches }));
+        if (wordReplace.grammar === "action") {
+          actionsEmitted++;
+        }
+      }
+    }
+    return returnParts;
+  }
 
   for (const slot of template.slots) {
     switch (slot satisfies Slot) {
@@ -265,6 +331,10 @@ export function translateSentence(
         parts.push(cluster);
         break;
       }
+      case 'allowedInput':
+        parts.push(... getAllowedWords(wordArray));
+        allowedInputEmitted = true;
+        break;
       case 'opener': {
         if (
           actionSlotsInTemplate > 0 &&
@@ -306,10 +376,10 @@ export function translateSentence(
     }
   }
 
-  // Soft easter-egg tag: prepend an ears-perk opener if the template
-  // didn't already place an action at the front.
-  if (wantsEarsPerk && !hasOpenerAction(parts)) {
-    parts.unshift('*ears perk up*');
+  // Append allowed parts to the end if not included in template
+  if (!allowedInputEmitted) {
+    parts.push(... getAllowedWords(wordArray));
+    allowedInputEmitted = true;
   }
 
   // Optionally force all `*...*` action phrases to trail the sounds.
@@ -324,6 +394,22 @@ export function translateSentence(
     parts.length = 0;
     parts.push(...sounds, ...actions);
   }
+
+  // Soft easter-egg tag: prepend an ears-perk opener if the template
+  // didn't already place an action at the front.
+  if (wantsEarsPerk && !hasOpenerAction(parts)) {
+    parts.unshift('*ears perk up*');
+  }
+
+  // Separate sequential actions with a comma
+  parts.forEach((part, idx) => {
+    if (idx >= parts.length - 1) {
+      return;
+    }
+    if (part.startsWith("*") && parts[idx+1]?.startsWith("*")) {
+      parts[idx] = parts[idx] + ",";
+    }
+  });
 
   // Punctuation + caps preservation from the source sentence.
   const punct = trailingPunctuation(trimmed);
