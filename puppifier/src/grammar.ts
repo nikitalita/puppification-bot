@@ -54,9 +54,10 @@ export const DEFAULT_ACTION_SHAPE: ActionShapeOptions = {
 };
 
 /**
- * List of plain puppy words to pass through, regexes will be handled elsewhere.
+ * List of plain puppy words to pass through, regexes are below.
+ * For replacement and advanced usage see EasterEggs.
  */
-export const puppyWords: Set<string> = new Set([
+export const puppyWords: Set<string|RegExp> = new Set([
   "arf",
   "bau",
   "baubau",
@@ -64,15 +65,13 @@ export const puppyWords: Set<string> = new Set([
   "bowow",
   "bowwow",
   "rawr",
+  "ruff",
   "sniff",
   "yip",
   "yap",
   "🐶",
   "🐕",
   "🐩",
-]);
-
-export const puppyWordsRegex: RegExp[] = [
   /^aro+$/,
   /^awo+$/,
   /^a(wa)+$/,
@@ -80,7 +79,15 @@ export const puppyWordsRegex: RegExp[] = [
   /^a?woo+f$/,
   /^grr+$/,
   /^<\@\d{3,20}>$/, // preserve pings
-];
+]);
+
+export const puppyWordsString = new Set(Array.from(puppyWords.values()).filter(
+  (w) => typeof w === "string"
+));
+
+export const puppyWordsRegex = Array.from(puppyWords.values()).filter(
+  (w) => w instanceof RegExp
+);
 
 const transitiveCommon: WeightedItem<string>[] = [
   { value: 'scratches', weight: 3 },

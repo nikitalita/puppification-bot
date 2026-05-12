@@ -11,9 +11,20 @@ describe('easter eggs', () => {
     for (const egg of EASTER_EGGS) {
       if (egg.kind === 'override') {
         expect(typeof egg.render).to.equal('function');
-      } else {
-        expect(egg.kind).to.equal('tag');
+      } 
+      else if (egg.kind == "tag") {
         expect(egg.tag).to.be.a('string');
+      }
+      else if (egg.kind == "replaceWord") {
+        expect(typeof egg.render).to.equal('function');
+        expect(typeof egg.render).to.equal('function');
+      }
+      else {
+        expect(egg.kind).to.be.a("string");
+      }
+      if (egg.grammar && egg.grammar === "action") {
+        // render should include ** but need a context to test with
+        expect(typeof egg.render).to.equal('function');
       }
     }
   });

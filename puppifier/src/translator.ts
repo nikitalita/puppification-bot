@@ -1,6 +1,6 @@
 import type { ToneScore } from 'emotion-classifier';
 import { EasterEgg, findOverride, findTags, findWordReplacement } from './easterEggs.js';
-import { blendActionProbability, composeAction, puppyWords, puppyWordsRegex } from './grammar.js';
+import { blendActionProbability, composeAction, puppyWordsString, puppyWordsRegex } from './grammar.js';
 import { morph } from './morphology.js';
 import type { Palette, SoundEntry } from './palettes.js';
 import type { Profile } from './profile.js';
@@ -35,7 +35,7 @@ export function makeRecentBuffers(profile: Profile): TranslateBuffers {
 
 function isAllowedWord(word: string): boolean {
   let testWord = word.toLowerCase();
-  if (puppyWords.has(testWord)) {
+  if (puppyWordsString.has(testWord)) {
     return true;
   }
   for (let r of puppyWordsRegex) {
@@ -201,6 +201,23 @@ function hasOpenerAction(parts: string[]): boolean {
   return parts.length > 0 && parts[0]!.startsWith('*');
 }
 
+function getAllowedWordCount(wordArray: string[]): number {
+  let returnCount = 0;
+  for (let word of wordArray) {
+    let wordReplace: EasterEgg | undefined = undefined;
+    if (isAllowedWord(word)) {
+      returnCount++;
+    }
+    else if (
+      (wordReplace = findWordReplacement(word)) 
+      && wordReplace?.render
+    ) {
+      returnCount++;
+    }
+  }
+  return returnCount;
+}
+
 /**
  * Translate a single sentence into a dog-speech string. See the plan's
  * "translator algorithm" section for the full step-by-step.
@@ -236,7 +253,7 @@ export function translateSentence(
   const wordCount = wordArray?.length;
   const expectedSounds = Math.max(
     1,
-    wordCount * density.soundsPerWord + (mix.intensity > 0 ? 0 : 0),
+    (wordCount - getAllowedWordCount(wordArray)) * density.soundsPerWord + (mix.intensity > 0 ? 0 : 0),
   );
   const totalSounds = jittered(
     expectedSounds,
@@ -272,90 +289,90 @@ export function translateSentence(
   let soundIdx = 0;
   let actionsEmitted = 0;
   const parts: string[] = [];
+  let allowedInputEmitted = false;
 
-  // for (const slot of template.slots) {
-  //   switch (slot satisfies Slot) {
-  //     case 'sound': {
-  //       const size = clusterSizes[soundIdx++] ?? 1;
-  //       const { cluster } = generateSoundCluster(size, mix, ctx, 'sounds');
-  //       parts.push(cluster);
-  //       break;
-  //     }
-  //     case 'opener': {
-  //       if (
-  //         actionSlotsInTemplate > 0 &&
-  //         actionsEmitted < targetActions &&
-  //         tryEmitAction()
-  //       ) {
-  //         const action = composeAction(
-  //           mix,
-  //           ctx.rng,
-  //           { verbs: ctx.buffers.verbs, verbObjects: ctx.buffers.verbObjects },
-  //           ctx.profile.grammars,
-  //           ctx.profile.actionShape,
-  //         );
-  //         parts.push(action);
-  //         actionsEmitted++;
-  //       } else {
-  //         // No action slot, exhausted, or gated out: open with an
-  //         // interjection sound so the sentence still has shape.
-  //         const { cluster } = generateSoundCluster(1, mix, ctx, 'interjections');
-  //         parts.push(cluster);
-  //       }
-  //       break;
-  //     }
-  //     case 'action':
-  //     case 'closer': {
-  //       if (actionsEmitted < targetActions && tryEmitAction()) {
-  //         const action = composeAction(
-  //           mix,
-  //           ctx.rng,
-  //           { verbs: ctx.buffers.verbs, verbObjects: ctx.buffers.verbObjects },
-  //           ctx.profile.grammars,
-  //           ctx.profile.actionShape,
-  //         );
-  //         parts.push(action);
-  //         actionsEmitted++;
-  //       }
-  //       break;
-  //     }
-  //   }
-  // }
-
-  for (let word of wordArray) {
-    let wordReplace: EasterEgg | undefined = undefined;
-    if (isAllowedWord(word)) {
-      parts.push(word);
-
-      // Additional
-      let count = ctx.rng.pickWeighted([0,1,2], [10,8,1]);
-      const { cluster } = generateSoundCluster(count, mix, ctx, ctx.rng.pick(['interjections', 'sounds']));
-      parts.push(cluster);
+  /**
+   * Side effect: increments actions emitted for every action easter egg. 
+   * @param wordArray input separated into words
+   * @returns array of parts for sentence from allowed and replaced words
+   */
+  function getAllowedWords(wordArray: string[]): string[] {
+    let returnParts = [];
+    for (let word of wordArray) {
+      let wordReplace: EasterEgg | undefined = undefined;
+      if (isAllowedWord(word)) {
+        returnParts.push(word);
+      }
+      else if (
+        (wordReplace = findWordReplacement(word)) 
+        && wordReplace?.render
+      ) {
+        returnParts.push(wordReplace.render({ rng: ctx.rng, mix, matches: wordReplace.matches }));
+        if (wordReplace.grammar === "action") {
+          actionsEmitted++;
+        }
+      }
     }
-    else if (
-      (wordReplace = findWordReplacement(word)) 
-      && wordReplace?.render
-    ) {
-      parts.push(wordReplace.render({ rng: ctx.rng, mix, matches: wordReplace.matches }));
-    }
-    else {
-      let count = ctx.rng.pickWeighted([0,1,2], [1,3,2]);
-      const { cluster } = generateSoundCluster(count, mix, ctx, ctx.rng.pick(['interjections', 'sounds']));
-      parts.push(cluster);
+    return returnParts;
+  }
+
+  for (const slot of template.slots) {
+    switch (slot satisfies Slot) {
+      case 'sound': {
+        const size = clusterSizes[soundIdx++] ?? 1;
+        const { cluster } = generateSoundCluster(size, mix, ctx, 'sounds');
+        parts.push(cluster);
+        break;
+      }
+      case 'allowedInput':
+        parts.push(... getAllowedWords(wordArray));
+        allowedInputEmitted = true;
+        break;
+      case 'opener': {
+        if (
+          actionSlotsInTemplate > 0 &&
+          actionsEmitted < targetActions &&
+          tryEmitAction()
+        ) {
+          const action = composeAction(
+            mix,
+            ctx.rng,
+            { verbs: ctx.buffers.verbs, verbObjects: ctx.buffers.verbObjects },
+            ctx.profile.grammars,
+            ctx.profile.actionShape,
+          );
+          parts.push(action);
+          actionsEmitted++;
+        } else {
+          // No action slot, exhausted, or gated out: open with an
+          // interjection sound so the sentence still has shape.
+          const { cluster } = generateSoundCluster(1, mix, ctx, 'interjections');
+          parts.push(cluster);
+        }
+        break;
+      }
+      case 'action':
+      case 'closer': {
+        if (actionsEmitted < targetActions && tryEmitAction()) {
+          const action = composeAction(
+            mix,
+            ctx.rng,
+            { verbs: ctx.buffers.verbs, verbObjects: ctx.buffers.verbObjects },
+            ctx.profile.grammars,
+            ctx.profile.actionShape,
+          );
+          parts.push(action);
+          actionsEmitted++;
+        }
+        break;
+      }
     }
   }
 
-  // closer 
-  if (actionsEmitted < targetActions && tryEmitAction()) {
-    const action = composeAction(
-      mix,
-      ctx.rng,
-      { verbs: ctx.buffers.verbs, verbObjects: ctx.buffers.verbObjects },
-      ctx.profile.grammars,
-      ctx.profile.actionShape,
-    );
-    parts.push(action);
-    actionsEmitted++;
+  // Append allowed parts to the end if not included in template
+  if (!allowedInputEmitted) {
+    parts.push(... getAllowedWords(wordArray));
+    allowedInputEmitted = true;
   }
 
   // Optionally force all `*...*` action phrases to trail the sounds.

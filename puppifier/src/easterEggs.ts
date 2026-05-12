@@ -22,7 +22,7 @@ export interface EasterEgg {
   /** String substring or RegExp matched against the normalized sentence. */
   match: string | RegExp;
   kind: 'override' | 'tag' | 'replaceWord';
-  /** Required when kind === 'override'. */
+  /** Required when kind === 'override' || 'replaceWord'. */
   render?: (ctx: EasterEggContext) => string;
   /** Required when kind === 'tag'. The translator interprets this. */
   tag?: 'earsPerk';
@@ -82,7 +82,7 @@ export const EASTER_EGGS: EasterEgg[] = [
   },
   {
     id: 'walk-treat-ball-park',
-    match: /\b(?:walk|walkies|treat|treats|ball|park|fetch)\b/,
+    match: /\b(?:walk|walkies|treat|treats|ball|park|fetch|bone)\b/,
     kind: 'tag',
     tag: 'earsPerk',
   },
@@ -102,10 +102,26 @@ export const EASTER_EGGS: EasterEgg[] = [
     id: 'aroo-long-word',
     match: /\b([a-z]{15,})\b/,
     kind: 'override',
-    render: ({ rng, matches }) => {
+    render: ({ rng }) => {
       const numOs = rng.int(5,25);
       const awoOrAro = pickOne(['w', 'r'], rng);
       return `A${awoOrAro}${'o'.repeat(numOs)}!`;
+    },
+  },
+  {
+    id: 'replace-discord-gif-links',
+    match: /^(https?:\/\/media\d.giphy.com\/media\/(.*)\.[a-z34]{2,4})|(https:\/\/.*tenor.com\/.*(\.[a-z34]{2,4})|[0-9]+)|(https:\/\/klipy.com\/gifs\/.*)$/,
+    kind: 'override',
+    render: ({ rng }) => {
+      return rng.pick([
+        "https://tenor.com/view/cute-puppy-aegi-golden-retriever-puppy-puppy-doggy-gif-6211630482704833346",
+        "https://tenor.com/view/crystal-amaru-gif-3146029766144478049",
+        "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExZHE4MnlxcTV2bGx4dzFsNHhhOTJnaTI3MmJmMW41bTRxbXl3N3VjdiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/WQ2IwyAgYlmU0/giphy.gif",
+        "https://klipy.com/gifs/perrete",
+        "https://klipy.com/gifs/h2di-puppy-play",
+        "https://klipy.com/gifs/dog-smile-23",
+        "https://klipy.com/gifs/cute-dog-happy",
+      ]);
     },
   },
 
@@ -114,7 +130,7 @@ export const EASTER_EGGS: EasterEgg[] = [
     id: 'love',
     match: /^loves?$/, // Match start and end of string instead of word boundry
     kind: 'replaceWord',
-    render: ({ rng, matches }) => {
+    render: () => {
       return `*licks lovingly*`;
     },
     grammar: "action",
@@ -123,7 +139,7 @@ export const EASTER_EGGS: EasterEgg[] = [
     id: 'paw',
     match: /^paws?$/,
     kind: 'replaceWord',
-    render: ({ rng, matches }) => {
+    render: () => {
       return `*holds out paw*`;
     },
     grammar: "action",
@@ -141,7 +157,7 @@ export const EASTER_EGGS: EasterEgg[] = [
     id: 'wag',
     match: /^wags?$/,
     kind: 'replaceWord',
-    render: ({ rng, matches }) => {
+    render: () => {
       return `*wags tail*`;
     },
     grammar: "action",
@@ -150,7 +166,7 @@ export const EASTER_EGGS: EasterEgg[] = [
     id: 'nuzzle',
     match: /^(nuzzles?)|(nose)$/,
     kind: 'replaceWord',
-    render: ({ rng, matches }) => {
+    render: () => {
       return `*nuzzle*`;
     },
     grammar: "action",
@@ -176,7 +192,7 @@ export const EASTER_EGGS: EasterEgg[] = [
     match: /^🥰|(<3)|😘|❤$/,
     kind: 'replaceWord',
     render: ({ rng, matches }) => {
-      return rng.pick(["♡૮ฅ ˆﻌˆ აฅ"]);
+      return rng.pick(["❤૮ฅ ˆﻌˆ აฅ❤", "❤U(ᵔᴥᵔ)U"]);
     },
   },
   {
@@ -189,10 +205,49 @@ export const EASTER_EGGS: EasterEgg[] = [
   },
   {
     id: 'emoji-replacement-shock',
-    match: /^😮$/,
+    match: /^😮|(:o)$/,
     kind: 'replaceWord',
     render: ({ rng, matches }) => {
       return rng.pick(["૮₍ ˶°ㅁ° ₎ა !!"]);
+    },
+  },
+  {
+    id: 'emoji-replacement-v-v',
+    match: /^(v_v)|(v\.v)|😔$/,
+    kind: 'replaceWord',
+    render: ({ rng, matches }) => {
+      return rng.pick(["૮ ˘ﻌ˘ ა"]);
+    },
+  },
+  {
+    id: 'emoji-replacement-sad',
+    match: /^(😟|(:\()|(🙁))$/,
+    kind: 'replaceWord',
+    render: ({ rng, matches }) => {
+      return rng.pick(["૮ ◞ ﻌ ◟ ა", "U´꓃`U"]);
+    },
+  },
+  {
+    id: 'emoji-replacement-cry',
+    match: /^(😢|😭)$/,
+    kind: 'replaceWord',
+    render: ({ rng, matches }) => {
+      return rng.pick(["૮ ಥ ﻌ ಥ ა", "U〒ﻌ〒U"]);
+    },
+  },
+  {
+    id: 'randomize-links',
+    match: /^(?:http[s]?:\/\/.)?(?:www\.)?[-a-zA-Z0-9@%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)$/,
+    kind: 'replaceWord',
+    render: ({ rng, matches }) => {
+      return rng.pick([
+        "https://www.thesprucepets.com/",
+        "https://www.puppies.com/",
+        "https://www.puppyfinder.com/",
+        "https://unsplash.com/s/photos/puppy-wallpaper",
+        "https://www.allthingsdogs.com/dog-memes/",
+        "https://www.dogster.com/",
+      ]);
     },
   },
 ];
