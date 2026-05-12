@@ -116,17 +116,23 @@ function resolveWebhookParent(
     channel.type === ChannelType.PublicThread ||
     channel.type === ChannelType.PrivateThread ||
     channel.type === ChannelType.AnnouncementThread
+    
   ) {
     const parent = channel.parent;
-    if (!parent) return null;
+    if (!parent) {
+      logger.warn("No parent for channel", channel);
+      return null;
+    }
     return parent as unknown as WebhookParent;
   }
   if (
     channel.type === ChannelType.GuildText ||
     channel.type === ChannelType.GuildAnnouncement ||
-    channel.type === ChannelType.GuildForum
+    channel.type === ChannelType.GuildForum ||
+    channel.type === ChannelType.GuildVoice
   ) {
     return channel as unknown as WebhookParent;
   }
+  logger.debug("Unhandled channel type", channel);
   return null;
 }

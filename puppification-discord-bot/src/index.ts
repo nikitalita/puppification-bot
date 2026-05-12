@@ -177,8 +177,11 @@ function setupShutdown(handler: () => Promise<void> | void): void {
       process.exit(0);
     }
   };
-  process.once('SIGINT', wrap('SIGINT'));
-  process.once('SIGTERM', wrap('SIGTERM'));
+
+  // Begin reading from stdin so the process does not exit imidiately
+  process.stdin.resume();
+  process.on('SIGINT', wrap('SIGINT'));
+  process.on('SIGTERM', wrap('SIGTERM'));
 }
 
 main().catch((err) => {

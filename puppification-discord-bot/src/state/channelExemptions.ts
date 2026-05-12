@@ -1,5 +1,6 @@
 import { logger } from '../util/logger.js';
 import { loadStore, saveStore } from './saveState.js';
+import process from 'node:process';
 
 /**
  * Per-guild set of channels in which the bot will NOT puppify any
@@ -18,7 +19,12 @@ export class ChannelExemptionStore {
   private readonly byGuild = new Map<string, Set<string>>();
 
   constructor() {
-    this.load();
+    let countPromise = this.load();
+    if (process.env.NODE_ENV !== "test") {
+      countPromise.then( count => {
+        logger.info("Loaded", count, "channels");
+      });
+    }
   }
 
   /**
@@ -90,21 +96,22 @@ export class ChannelExemptionStore {
     saveStore("exemptions", { byGuild: safeGuildInfo });
   }
 
-  private async load(): Promise<void> {
+  private async load(): Promise<number> {
     try {
       let count = 0;
       const state = await loadStore("exemptions");
       if (!state.byGuild) {
-        return;
+        return 0;
       }
 
       for (let [guildId, channels] of Object.entries(state.byGuild)) {
         this.byGuild.set(guildId, new Set(channels as Array<string>) );
         count += (channels as Array<string>).length;
       }
-      logger.info("Loaded", count, "channel exemptions");
+      return count;
     } catch (error) {
       logger.error('Failed to load state:', error);
+      return 0;
     }
   }
 }

@@ -11,7 +11,7 @@
     "start": "node dist/src/index.js",
     "dev": "tsx watch src/index.ts",
     "register": "tsx scripts/register-commands.ts",
-    "test": "SAVE_LOCATION='./tests' mocha"
+    "test": "NODE_ENV='test' SAVE_LOCATION='./tests' mocha"
   },
   "engines": {
     "node": ">=18"

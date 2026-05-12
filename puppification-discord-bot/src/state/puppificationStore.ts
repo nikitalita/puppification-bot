@@ -88,7 +88,12 @@ export class PuppificationStore {
   private onExpire: ExpiryHandler | undefined;
 
   constructor() {
-    this.load();
+    let countPromise = this.load();
+    if (process.env.NODE_ENV !== "test") {
+      countPromise.then( count => {
+        logger.info("Loaded", count, "puppifications");
+      });
+    }
   }
 
   /**
@@ -203,7 +208,7 @@ export class PuppificationStore {
     this.save();
   }
 
-  private async load(): Promise<void> {
+  private async load(): Promise<number> {
     type entryJson = {
           guildId: string,
           userId: string,
@@ -242,9 +247,10 @@ export class PuppificationStore {
 
         count++;
       }
-      logger.info("Loaded", count, "puppifications");
+      return count;
     } catch (error) {
       logger.error('Failed to load state:', error);
+      return 0;
     }
   }
 }
