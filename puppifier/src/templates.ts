@@ -1,6 +1,6 @@
 import type { Random } from './random.js';
 
-export type Slot = 'sound' | 'action' | 'opener' | 'closer';
+export type Slot = 'sound' | 'action' | 'opener' | 'closer' | 'allowedInput';
 
 export interface Template {
   slots: Slot[];
@@ -15,11 +15,11 @@ export interface Template {
  */
 export const TEMPLATES: Template[] = [
   { slots: ['sound'], weight: 3 },
-  { slots: ['sound', 'action'], weight: 4 },
-  { slots: ['opener', 'sound'], weight: 1 },
-  { slots: ['sound', 'action', 'sound'], weight: 2, minIntensity: 0.5 },
-  { slots: ['action', 'sound'], weight: 1 },
-  { slots: ['sound', 'closer'], weight: 1, minIntensity: 0.3 },
+  { slots: ['sound', 'action',  'allowedInput'], weight: 4 },
+  { slots: ['opener', 'allowedInput', 'sound'], weight: 1 },
+  { slots: ['sound', 'action', 'allowedInput', 'sound'], weight: 2, minIntensity: 0.5 },
+  { slots: ['action', 'allowedInput', 'sound'], weight: 1 },
+  { slots: ['sound', 'allowedInput', 'closer'], weight: 1, minIntensity: 0.3 },
 ];
 
 /**
