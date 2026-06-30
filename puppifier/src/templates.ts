@@ -15,7 +15,7 @@ export interface Template {
  */
 export const TEMPLATES: Template[] = [
   { slots: ['sound'], weight: 3 },
-  { slots: ['sound', 'action',  'allowedInput'], weight: 4 },
+  { slots: ['sound', 'action', 'allowedInput'], weight: 4 },
   { slots: ['opener', 'allowedInput', 'sound'], weight: 1 },
   { slots: ['sound', 'action', 'allowedInput', 'sound'], weight: 2, minIntensity: 0.5 },
   { slots: ['action', 'allowedInput', 'sound'], weight: 1 },
