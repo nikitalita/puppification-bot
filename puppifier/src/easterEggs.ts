@@ -34,7 +34,6 @@ function pickOne<T>(items: readonly T[], rng: Random): T {
   return rng.pick(items);
 }
 
-
 /**
  * Ordered list of easter eggs. Earlier entries take precedence on first
  * match. Tags don't preempt overrides; the translator should call
@@ -110,7 +109,7 @@ export const EASTER_EGGS: EasterEgg[] = [
   },
   {
     id: 'replace-discord-gif-links',
-    match: /^(https?:\/\/media\d.giphy.com\/media\/(.*)\.[a-z34]{2,4})|(https:\/\/.*tenor.com\/.*(\.[a-z34]{2,4})|[0-9]+)|(https:\/\/klipy.com\/gifs\/.*)$/,
+    match: /^https?:\/\/((media\d.giphy.com\/media\/(.*)\.[a-z34]{2,4})|(.*tenor.com\/.*((\.[a-z34]{2,4})|[0-9]+))|(klipy\.com\/gifs\/.*)|(cdn\.discordapp\.com\/attachments\/.*\.gif\?.*))$/,
     kind: 'override',
     render: ({ rng }) => {
       return rng.pick([
@@ -121,6 +120,9 @@ export const EASTER_EGGS: EasterEgg[] = [
         "https://klipy.com/gifs/h2di-puppy-play",
         "https://klipy.com/gifs/dog-smile-23",
         "https://klipy.com/gifs/cute-dog-happy",
+        "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExZXRyOG9ta3Jhbzh6Zno1bHhsbjd5dmh6dW83bTNla2dvdXoydGF5OSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/S7RmvM3aoWEtG/giphy.gif",
+        "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExbHZjNmJlazlwazM3eWQzNTRuc3F5OXhjMnRhemMwNjllcTF6dGt5YSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/hPyONzUYJhLZS/giphy.gif",
+        "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzYwNWRlcWR4aXkwejQ2NWwyeTd5OWl4b2ZmbDJiN2VlaXdqYnVtbSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3ov9k9AyzTiUCfsZrO/giphy.gif",
       ]);
     },
   },
